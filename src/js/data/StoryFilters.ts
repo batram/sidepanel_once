@@ -1,15 +1,15 @@
 import { Story } from "./Story"
-import { ipcRenderer } from "electron"
+import { BackComms } from "./BackComms"
 
 export async function filter_stories(stories: Story[]): Promise<Story[]> {
-  const filter_list = await ipcRenderer.invoke("inv_settings", "get_filterlist")
+  const filter_list = await BackComms.invoke("inv_settings", "get_filterlist")
   return stories.map((story) => {
     return filter_run(filter_list, story)
   })
 }
 
 export async function filter_story(story: Story): Promise<Story> {
-  const filter_list = await ipcRenderer.invoke("inv_settings", "get_filterlist")
+  const filter_list = await BackComms.invoke("inv_settings", "get_filterlist")
   return filter_run(filter_list, story)
 }
 

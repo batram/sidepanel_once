@@ -2,9 +2,8 @@ import { Story } from "../../data/Story"
 import { StoryListItem } from "../../view/StoryListItem"
 import * as Readability from "../../third_party/Readability.js"
 import { TabWrangler } from "../../view/TabWrangler"
-import { ipcRenderer } from "electron"
+import { BackComms } from "../../data/BackComms"
 import { StoryMap } from "../../data/StoryMap"
-import { WebTab } from "../WebTab"
 
 export const description = "Presents contents of a webpage in more readable way"
 
@@ -35,7 +34,7 @@ const data_outline_url = "data:text/html;charset=utf-8,<!--outline-->"
 const outline_proto = "outline://data"
 const data_outline_url_fail = "data:text/plain;charset=utf-8,outline%20failed"
 
-let current_tab: WebTab
+//let current_tab: WebTab
 
 export function handle_url(): boolean {
   return false
@@ -100,11 +99,11 @@ export function story_elem_button(story: Story): HTMLElement {
       .classList.add("user_interaction")
 
     if (event.button == 0) {
-      TabWrangler.ops.send_or_create_tab("outline", story.href)
+      //TabWrangler.ops.send_or_create_tab("outline", story.href)
     } else if (event.button == 1) {
       event.preventDefault()
       event.stopPropagation()
-      TabWrangler.ops.send_to_new_tab("outline", story.href)
+      //TabWrangler.ops.send_to_new_tab("outline", story.href)
       return false
     }
     //TODO: show cache options on 2?
@@ -113,9 +112,9 @@ export function story_elem_button(story: Story): HTMLElement {
   return outline_btn
 }
 
-export function init_in_webtab(tab: WebTab): void {
-  current_tab = tab
-  ipcRenderer.on("outline", (_event, href) => {
+export function init_in_webtab(): void {
+  //current_tab = tab
+  BackComms.on("outline", (_event, href) => {
     outline_button_active()
     outline(href)
   })
@@ -142,7 +141,7 @@ export function urlbar_button(): HTMLElement {
   button.style.marginRight = "3px"
 
   button.onclick = async () => {
-    const webview = document.querySelector<Electron.WebviewTag>("#webview")
+    /*const webview = document.querySelector<Electron.WebviewTag>("#webview")
     const urlfield = document.querySelector<HTMLInputElement>("#urlfield")
     if (!webview || !urlfield) {
       console.error(
@@ -157,7 +156,7 @@ export function urlbar_button(): HTMLElement {
       webview.setAttribute("src", urlfield.value)
     } else {
       outline(urlfield.value)
-    }
+    }*/
   }
 
   return button
@@ -185,7 +184,7 @@ export async function present(url: string): Promise<void> {
 }
 
 async function outline(url: string): Promise<void> {
-  const webview = document.querySelector<Electron.WebviewTag>("#webview")
+  /* const webview = document.querySelector<Electron.WebviewTag>("#webview")
   let story_content = null
 
   const story = await StoryMap.remote.get(url)
@@ -194,8 +193,8 @@ async function outline(url: string): Promise<void> {
   }
 
   if (!story_content) {
-    if (ipcRenderer.sendSync("has_outlined", url)) {
-      webview.setAttribute("src", "outline://data:" + encodeURIComponent(url))
+    if (BackComms.sendSync("has_outlined", url)) {
+      //webview.setAttribute("src", "outline://data:" + encodeURIComponent(url))
       return
     } else {
       if (webview.getAttribute("src") == url) {
@@ -203,7 +202,7 @@ async function outline(url: string): Promise<void> {
         story_content = await webview.executeJavaScript(
           "document.documentElement.outerHTML"
         )
-      }
+    }
     }
   }
 
@@ -229,7 +228,7 @@ async function outline(url: string): Promise<void> {
     TabWrangler.ops.send_or_create_tab("outline", url)
     return
   }
-  current_tab.set_url(url)
+  //current_tab.set_url(url)
   const og_url = url
 
   if (!story_content) {
@@ -331,20 +330,21 @@ async function outline(url: string): Promise<void> {
     h1_title.outerHTML +
     article.content
 
-  ipcRenderer.sendSync("outlined", og_url, data)
+  BackComms.sendSync("outlined", og_url, data)
 
   webview.setAttribute("src", "outline://data:" + encodeURIComponent(og_url))
+  */
 }
 
 function fail_outline(reason: string) {
-  const webview = document.querySelector<Electron.WebviewTag>("#webview")
+  /*const webview = document.querySelector<Electron.WebviewTag>("#webview")
   webview.setAttribute(
     "src",
     data_outline_url_fail +
       encodeURIComponent("  " + reason) +
       "#" +
       "outline:failed"
-  )
+  )*/
 }
 
 async function archive_cache(url: string) {

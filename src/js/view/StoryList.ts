@@ -4,8 +4,8 @@ import { StoryListItem } from "../view/StoryListItem"
 import * as filters from "../data/StoryFilters"
 import { StoryMap, DataChangeEventDetail } from "../data/StoryMap"
 import * as story_loader from "../data/StoryLoader"
-import { ipcRenderer } from "electron"
 import * as search from "../data/search"
+import { BackComms } from "../data/BackComms"
 
 export class DataChangeEvent extends Event {
   detail: DataChangeEventDetail
@@ -28,8 +28,8 @@ export function init(): void {
 }
 
 export function remote_story_change(): void {
-  ipcRenderer.send("story_map", "subscribe_to_changes")
-  ipcRenderer.on(
+  BackComms.send("story_map", "subscribe_to_changes")
+  BackComms.on(
     "story_map",
     async (event, cmd: "data_change", details: DataChangeEventDetail) => {
       switch (cmd) {
@@ -58,31 +58,28 @@ export function remote_story_change(): void {
     }
   )
 
-  ipcRenderer.send("settings", "subscribe_to_changes")
-  ipcRenderer.on(
-    "story_list",
-    async (event, cmd: string, ...args: unknown[]) => {
-      switch (cmd) {
-        case "add_stories":
-          add_stories(
-            (args[0] as Record<string, unknown>[]).map((story: Story) => {
-              return Story.from_obj(story)
-            }),
-            args[1] as string
-          )
-          break
-        case "reload":
-          reload()
-          break
-        case "refilter":
-          refilter()
-          break
-        default:
-          console.log("unhandled story_list", cmd)
-          event.returnValue = null
-      }
+  BackComms.send("settings", "subscribe_to_changes")
+  BackComms.on("story_list", async (event, cmd: string, ...args: unknown[]) => {
+    switch (cmd) {
+      case "add_stories":
+        add_stories(
+          (args[0] as Record<string, unknown>[]).map((story: Story) => {
+            return Story.from_obj(story)
+          }),
+          args[1] as string
+        )
+        break
+      case "reload":
+        reload()
+        break
+      case "refilter":
+        refilter()
+        break
+      default:
+        console.log("unhandled story_list", cmd)
+        event.returnValue = null
     }
-  )
+  })
 }
 
 function add_stories(stories: Story[], bucket = "stories") {
@@ -246,7 +243,7 @@ function refilter(): void {
 }
 
 async function reload(): Promise<void> {
-  document.querySelectorAll(".story").forEach((x) => {
+  document.querySelectorAll("#stories .story").forEach((x) => {
     x.outerHTML = ""
   })
 

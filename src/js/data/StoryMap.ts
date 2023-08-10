@@ -1,6 +1,6 @@
-import { ipcMain, ipcRenderer, WebContents } from "electron"
 import { Story } from "../data/Story"
 import { OnceSettings } from "../OnceSettings"
+import { BackComms } from "./BackComms"
 
 export interface DataChangeEventDetail {
   story: Story
@@ -15,32 +15,32 @@ export class StoryMap {
   static instance: StoryMap
   static remote = {
     async get(href: string): Promise<Story> {
-      const story_obj = await ipcRenderer.invoke("inv_story_map", "get", href)
+      const story_obj = await BackComms.invoke("inv_story_map", "get", href)
       if (story_obj) return Story.from_obj(story_obj)
     },
     async add(href: Story): Promise<Story> {
       return Story.from_obj(
-        await ipcRenderer.invoke("inv_story_map", "add", href)
+        await BackComms.invoke("inv_story_map", "add", href)
       )
     },
     stories_loaded(stories: Story[], bucket: string): void {
       const story_objs = stories.map((story) => {
         return story.to_obj()
       })
-      ipcRenderer.send("story_map", "stories_loaded", story_objs, bucket)
+      BackComms.send("story_map", "stories_loaded", story_objs, bucket)
     },
     persist_story_change(
       href: string,
       path: string,
       value: Story | string | boolean
     ): void {
-      ipcRenderer.send("story_map", "persist_story_change", href, path, value)
+      BackComms.send("story_map", "persist_story_change", href, path, value)
     },
     async find_by_url(url: string): Promise<Story> {
       if (!url) {
         return
       }
-      const story_obj = await ipcRenderer.invoke(
+      const story_obj = await BackComms.invoke(
         "inv_story_map",
         "find_by_url",
         url
@@ -49,31 +49,32 @@ export class StoryMap {
     },
   }
 
-  subscribers: WebContents[] = []
+  subscribers: Number[] = []
 
   constructor() {
     StoryMap.instance = this
 
-    ipcMain.handle("inv_story_map", async (event, cmd, ...args: unknown[]) => {
+    BackComms.handlex("inv_story_map", async (event, cmd, ...args: any[]) => {
       switch (cmd) {
         case "get":
           return this.get(args[0] as string)
         case "add":
           return this.add(Story.from_obj(args[0] as Record<string, unknown>))
         case "find_by_url":
-          return this.find_by_url(args[0] as string)
+          return this.find_by_url(args[0][0] as string)
         default:
           console.log("unhandled inv_story_map", cmd)
           event.returnValue = null
       }
     })
 
-    ipcMain.on("story_map", async (event, cmd, ...args: unknown[]) => {
+    BackComms.on("story_map", async (event, cmd, ...args: unknown[]) => {
       switch (cmd) {
         case "subscribe_to_changes":
           if (!this.subscribers.includes(event.sender)) {
             this.subscribers.push(event.sender)
           }
+          console.log("sub", this.subscribers, event, cmd, args)
           break
         case "persist_story_change":
           this.persist_story_change(
@@ -96,12 +97,7 @@ export class StoryMap {
             mapped_stories.push(story)
           })
 
-          event.sender.send(
-            "story_list",
-            "add_stories",
-            mapped_stories,
-            args[1]
-          )
+          BackComms.send("story_list", "add_stories", mapped_stories, args[1])
           break
         }
         default:
@@ -111,8 +107,11 @@ export class StoryMap {
     })
   }
 
-  internal_map: Record<string, Story> = {}
+  internal_map: Map<string, Story> = new Map()
+  internal_map_ready: boolean = false
+  comment_map: Map<string, string> = new Map()
 
+  /*
   forEach(fun: (arg0: Story) => unknown): void {
     for (const i in this.internal_map) {
       if (typeof this.internal_map[i] != "function") {
@@ -120,21 +119,27 @@ export class StoryMap {
       }
     }
   }
-
+*/
   map(fun: (arg0: Story) => boolean): Story[] {
-    const ar = []
-    for (const i in this.internal_map) {
-      if (typeof this.internal_map[i] != "function") {
-        if (fun(this.internal_map[i])) {
-          ar.push(this.internal_map[i])
-        }
+    const ar: Story[] = []
+    this.internal_map.forEach((x) => {
+      if (fun(x)) {
+        ar.push(x)
       }
-    }
+    })
     return ar
   }
 
   find_by_url(url: string): Story {
     console.debug("find_by_url", url)
+    if (this.internal_map.has(url)) {
+      return this.internal_map.get(url)
+    } else if (this.comment_map.has(url)) {
+      return this.internal_map.get(this.comment_map.get(url))
+    }
+    return null
+
+    /*
     for (const i in this.internal_map) {
       if (typeof this.internal_map[i] != "function") {
         const story = this.internal_map[i]
@@ -142,7 +147,7 @@ export class StoryMap {
           return story
         }
       }
-    }
+    }*/
   }
 
   emit_data_change(
@@ -162,38 +167,38 @@ export class StoryMap {
           name: name,
           animated: OnceSettings.instance.animated,
         }
+
+        BackComms.send("story_map", "data_change", detail)
         this.subscribers.forEach((subscriber) => {
-          if (!subscriber.isDestroyed()) {
-            subscriber.send("story_map", "data_change", detail)
-          }
+          console.log("subbedf==", subscriber)
+          //if (!subscriber.isDestroyed()) {
+          //  subscriber.send("story_map", "data_change", detail)
+          //}
         })
       }
     }
   }
 
   set(href: string, y: Story, quite = false): Story {
-    const old_story = this.internal_map[href]
-    this.internal_map[href] = y
+    const old_story = this.internal_map.get(href)
+    this.internal_map.set(href, y)
     if (!quite) {
       this.emit_data_change([href], y, old_story, null)
     }
-    return this.internal_map[href]
+    this.comment_map.set(y.comment_url, y.href)
+    y.substories.forEach((x) => {
+      this.comment_map.set(x.comment_url, y.href)
+    })
+
+    return this.internal_map.get(href)
   }
 
   get(href: string): Story {
-    return this.internal_map[href]
+    return this.internal_map.get(href)
   }
 
   has(href: string): boolean {
-    return Object.prototype.hasOwnProperty.call(this.internal_map, href)
-  }
-
-  clear(): void {
-    for (const i in this.internal_map) {
-      if (typeof this.internal_map[i] != "function") {
-        delete this.internal_map[i]
-      }
-    }
+    return this.internal_map.has(href)
   }
 
   async persist_story_change(
@@ -202,17 +207,20 @@ export class StoryMap {
     value: Story | string | boolean
   ): Promise<Story> {
     let story = this.get(href)
-    const previous_value = story[path]
-    story[path] = value
-    this.emit_data_change([href, path], value, previous_value, null)
-    story = await OnceSettings.instance.save_story(story)
+    if (story) {
+      const previous_value = story[path]
+      story[path] = value
+      this.emit_data_change([href, path], value, previous_value, null)
+      story = await OnceSettings.instance.save_story(story)
+    }
     return story
   }
 
-  set_initial_stories(stories: Story[]): Story[] {
-    return stories.map((story) => {
+  set_initial_stories(stories: Story[]) {
+    stories.map((story) => {
       return this.set(story.href, story, true)
     })
+    this.internal_map_ready = true
   }
 
   async add_stories(stories: Story[]): Promise<Story[]> {
@@ -238,7 +246,25 @@ export class StoryMap {
 
     story.bucket = bucket
 
-    let og_story = this.get(story.href)
+    let og_story: Story
+
+    if (this.internal_map_ready) {
+      og_story = this.get(story.href)
+    } else {
+      og_story = await OnceSettings.instance.get_story(story.href)
+    }
+
+    console.debug(
+      "add story",
+      story.href,
+      "new",
+      story,
+      "og",
+      og_story,
+      "map size",
+      this.internal_map.size
+    )
+
     if (!og_story) {
       //new story
       story = this.set(story.href.toString(), story)
@@ -249,7 +275,11 @@ export class StoryMap {
         return x.comment_url
       })
 
-      if (story.comment_url == og_story.comment_url) {
+      if (
+        story.comment_url == og_story.comment_url &&
+        JSON.stringify(story.tags) != JSON.stringify(og_story.tags)
+      ) {
+        //TODO: are tags different
         const prev_tags = og_story.tags
         story.tags.forEach((tag) => {
           if (!og_story.tags.map((t) => t.text).includes(tag.text)) {
@@ -285,7 +315,7 @@ export class StoryMap {
         )
         og_story = await OnceSettings.instance.save_story(og_story)
       }
-
+      /*
       if (story._attachments) {
         const prev_attached = og_story._attachments
         if (!og_story._attachments) {
@@ -317,9 +347,11 @@ export class StoryMap {
           og_story = await OnceSettings.instance.save_story(og_story)
         }
       }
+*/
 
       story = og_story
     }
+    console.debug("add story end", story.href, "new", story, "og", og_story)
 
     return story
   }

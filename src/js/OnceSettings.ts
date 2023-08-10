@@ -1,9 +1,9 @@
-import * as PouchDB from "pouchdb"
-import { ipcMain, ipcRenderer, WebContents, nativeTheme } from "electron"
+import PouchDB from "pouchdb-browser"
 import { StoryMap } from "./data/StoryMap"
 import { Story } from "./data/Story"
 import { Redirect, URLRedirect } from "./data/URLRedirect"
-import * as fs from "fs"
+//import * as fs from "fs"
+import { BackComms } from "./data/BackComms"
 
 export class OnceSettings {
   default_sources = [
@@ -20,76 +20,78 @@ export class OnceSettings {
 
   static remote = {
     grouped_story_sources(): Promise<Record<string, string[]>> {
-      return ipcRenderer.invoke("inv_settings", "grouped_story_sources")
+      return BackComms.invoke("inv_settings", "grouped_story_sources")
     },
     story_sources(): Promise<string[]> {
-      return ipcRenderer.invoke("inv_settings", "story_sources")
+      return BackComms.invoke("inv_settings", "story_sources")
     },
     get_sync_url(): Promise<string> {
-      return ipcRenderer.invoke("inv_settings", "get_sync_url")
+      return BackComms.invoke("inv_settings", "get_sync_url")
     },
     set_sync_url(url: string): Promise<string> {
-      return ipcRenderer.invoke("inv_settings", "set_sync_url", url)
+      return BackComms.invoke("inv_settings", "set_sync_url", url)
     },
     get_filterlist(): Promise<string[]> {
-      return ipcRenderer.invoke("inv_settings", "get_filterlist")
+      return BackComms.invoke("inv_settings", "get_filterlist")
     },
     get_redirectlist(): Promise<Redirect[]> {
-      return ipcRenderer.invoke("inv_settings", "get_redirectlist")
+      return BackComms.invoke("inv_settings", "get_redirectlist")
     },
     pouch_get<T>(id: string, fallback_value: T): Promise<T> {
-      return ipcRenderer.invoke("inv_settings", "pouch_get", id, fallback_value)
+      return BackComms.invoke("inv_settings", "pouch_get", id, fallback_value)
     },
     getAttachment(id: string, key: string): Promise<string> {
-      return ipcRenderer.invoke("inv_settings", "getAttachment", id, key)
+      return BackComms.invoke("inv_settings", "getAttachment", id, key)
     },
   }
 
-  subscribers: WebContents[] = []
+  subscribers: Number[] = []
   animated = true
 
   constructor() {
     OnceSettings.instance = this
-    this.once_db = new PouchDB(global.paths.pouchdb_path)
-    const sync_url = this.get_sync_url()
-    console.log("sync_url", sync_url)
-
-    if (sync_url) {
-      this.couchdb_sync(sync_url)
-    }
-
+    this.once_db = new PouchDB("once_db")
     this.get_stories().then((stories) => {
+      //console.log("init stories", stories.length, stories)
       StoryMap.instance.set_initial_stories(stories)
+    })
+
+    this.get_sync_url().then((x) => {
+      if (x) {
+        console.log("sync_url", x)
+        this.couchdb_sync(x)
+      }
     })
 
     this.pouch_get("animation", true).then((animated) => {
       this.animated = animated
     })
 
-    URLRedirect.init()
+    //URLRedirect.init()
 
-    ipcMain.handle("inv_settings", async (event, cmd, ...args: unknown[]) => {
+    BackComms.handlex("inv_settings", async (event, cmd, ...args: any[]) => {
+      let argl = args[0]
       switch (cmd) {
         case "story_sources":
           return this.story_sources()
         case "grouped_story_sources":
           return this.grouped_story_sources()
         case "get_sync_url":
-          return this.get_sync_url()
+          return await this.get_sync_url()
         case "set_sync_url":
-          return this.set_sync_url(args[0] as string)
+          return this.set_sync_url(argl[0] as string)
         case "get_filterlist":
           return this.get_filterlist()
         case "get_redirectlist":
           return this.get_redirectlist()
         case "pouch_get":
-          return this.pouch_get(args[0] as string, args[1])
+          return this.pouch_get(argl[0] as string, argl[1])
         case "getAttachment": {
           const tat = this.once_db.getAttachment(
-            args[0] as string,
-            args[1] as string
+            argl[0] as string,
+            argl[1] as string
           )
-          console.log("getAttachment", args[0], args[1], tat)
+          console.log("getAttachment", argl[0], argl[1], tat)
           return tat
         }
         default:
@@ -97,7 +99,7 @@ export class OnceSettings {
       }
     })
 
-    ipcMain.on("settings", async (event, cmd, ...args: unknown[]) => {
+    BackComms.on("settings", async (event, cmd, ...args: any[]) => {
       switch (cmd) {
         case "subscribe_to_changes":
           if (!this.subscribers.includes(event.sender)) {
@@ -105,7 +107,8 @@ export class OnceSettings {
           }
           break
         case "set_theme":
-          nativeTheme.themeSource = args[0] as "system" | "light" | "dark"
+          //TODO: set theme
+          //nativeTheme.themeSource = args[0] as "system" | "light" | "dark"
           break
         case "pouch_set":
           console.log("pouch_set", args[0], args[1])
@@ -116,7 +119,7 @@ export class OnceSettings {
           )
           break
         case "sync_url": {
-          this.set_sync_url(args[0] as string)
+          this.set_sync_url(args[0][0] as string)
           break
         }
         case "save_filterlist":
@@ -143,64 +146,61 @@ export class OnceSettings {
         include_docs: true,
       })
       .on("change", (change) => {
-        this.subscribers.forEach((subscriber) => {
-          if (subscriber.isDestroyed()) {
-            return
+        console.log("pouch change", change.id, change)
+
+        if (change.id.startsWith("sto_") && change.doc) {
+          const changed_story = Story.from_obj(change.doc)
+          const stored = StoryMap.instance.get(changed_story.href)
+          if (!stored || !stored._rev || stored._rev != change.doc._rev) {
+            StoryMap.instance.set(
+              changed_story.href,
+              Story.from_obj(change.doc)
+            )
           }
-          if (change.id.startsWith("sto_") && change.doc) {
-            const changed_story = Story.from_obj(change.doc)
-            const stored = StoryMap.instance.get(changed_story.href)
-            if (!stored || !stored._rev || stored._rev != change.doc._rev) {
-              StoryMap.instance.set(
-                changed_story.href,
-                Story.from_obj(change.doc)
-              )
-            }
-          } else {
-            switch (change.id) {
-              case "story_sources":
-                subscriber.send("settings", "set_sources_area")
-                subscriber.send("story_list", "reload")
-                break
-              case "filter_list":
-                subscriber.send("settings", "set_filter_area")
-                subscriber.send("story_list", "refilter")
-                break
-              case "redirect_list":
-                subscriber.send("settings", "set_redirect_area")
-                break
-              case "theme":
-                subscriber.send("settings", "restore_theme_settings")
-                break
-              case "animation":
-                this.animated = change.doc.list as boolean
-                subscriber.send("settings", "restore_animation_settings")
-            }
+        } else {
+          switch (change.id) {
+            case "story_sources":
+              BackComms.send("settings", "set_sources_area")
+              BackComms.send("story_list", "reload")
+              break
+            case "filter_list":
+              BackComms.send("settings", "set_filter_area")
+              BackComms.send("story_list", "refilter")
+              break
+            case "redirect_list":
+              BackComms.send("settings", "set_redirect_area")
+              break
+            case "theme":
+              BackComms.send("settings", "restore_theme_settings")
+              break
+            case "animation":
+              this.animated = change.doc.list as boolean
+              BackComms.send("settings", "restore_animation_settings")
           }
-        })
+        }
       })
   }
 
-  set_sync_url(sync_url: string): void {
-    const old_url = this.get_sync_url()
+  async set_sync_url(sync_url: string): Promise<void> {
+    const old_url = await this.get_sync_url()
+    console.log("set_sync_url", sync_url, old_url)
     if (sync_url != old_url) {
-      fs.mkdirSync(global.paths.nosync_path, { recursive: true })
-      fs.writeFileSync(global.paths.sync_url_file, sync_url)
+      chrome.storage.sync.set({ sync_url: sync_url })
+      //fs.mkdirSync(global.paths.nosync_path, { recursive: true })
+      //fs.writeFileSync(global.paths.sync_url_file, sync_url)
       this.couchdb_sync(sync_url)
     }
   }
 
-  get_sync_url(): string {
-    if (fs.existsSync(global.paths.sync_url_file)) {
-      return fs.readFileSync(global.paths.sync_url_file, "utf8")
-    } else {
-      return ""
-    }
+  async get_sync_url(): Promise<string> {
+    let data = await chrome.storage.sync.get("sync_url")
+    return data ? data.sync_url : ""
   }
 
   update_on_change(
     event: PouchDB.Replication.SyncResult<Record<string, unknown>>
   ): void {
+    console.log("chagne db", event)
     if (event.direction == "pull") {
       event.change.docs.forEach((doc) => {
         console.debug("update", doc._id)
@@ -217,28 +217,29 @@ export class OnceSettings {
     if (this.syncHandler) {
       this.syncHandler.cancel()
     }
-
     this.once_db.replicate
       .from(couchdb_url)
       .on("complete", (info) => {
         console.log("complete info replicate", info)
-        this.syncHandler = this.once_db.sync(couchdb_url, sync_ops)
-        this.syncHandler
-          .on("change", (event) => {
-            this.update_on_change(event)
-          })
-          .on("complete", (info) => {
-            console.debug("pouch sync stopped", info)
-          })
-          .on("error", (err: Error) => {
-            console.error("pouch err", err)
-          })
-          .on("denied", (err: Error) => {
-            console.error("pouch denied", err)
-          })
-          .on("paused", () => {
-            console.error("pouch paused")
-          })
+        if (!this.syncHandler) {
+          this.syncHandler = this.once_db.sync(couchdb_url, sync_ops)
+          this.syncHandler
+            .on("change", (event) => {
+              this.update_on_change(event)
+            })
+            .on("complete", (info) => {
+              console.debug("pouch sync stopped", info)
+            })
+            .on("error", (err: Error) => {
+              console.error("pouch err", err)
+            })
+            .on("denied", (err: Error) => {
+              console.error("pouch denied", err)
+            })
+            .on("paused", () => {
+              console.info("pouch paused")
+            })
+        }
       })
       .on("error", (e: Error) => {
         console.error("pouch sync error", e)
@@ -305,7 +306,7 @@ export class OnceSettings {
     return this.once_db
       .get(this.story_id(url))
       .then((doc: unknown) => {
-        return doc as Story
+        return Story.from_obj(doc as Story)
       })
       .catch((err) => {
         console.error("get_story err", err)
@@ -317,9 +318,7 @@ export class OnceSettings {
     if (story._attachments) {
       for (const i in story._attachments) {
         if (story._attachments[i].raw_content) {
-          story._attachments[i].data = Buffer.from(
-            story._attachments[i].raw_content
-          ).toString("base64")
+          story._attachments[i].data = btoa(story._attachments[i].raw_content)
         }
       }
     }

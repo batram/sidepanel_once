@@ -1,10 +1,7 @@
-import * as path from "path"
-import * as fs from "fs"
+//import * as path from "path"
+//import * as fs from "fs"
 import { Story } from "../data/Story"
-import { WebTab } from "./WebTab"
 import { StoryListItem } from "./StoryListItem"
-import { Menu } from "electron"
-import { CMenuData } from "./contextmenu"
 
 export declare interface PresenterOptions {
   story_button: {
@@ -21,10 +18,10 @@ export declare interface Presenter {
   presenter_options: PresenterOptions
   display_url: (url: string) => string
   story_elem_button?: (story: Story, intab: boolean) => HTMLElement
-  context_link?: (con_menu: Menu, cmenu_data: CMenuData) => void
+  context_link?: (/*con_menu: Menu, cmenu_data: CMenuData*/) => void
   handle(url: string): Promise<boolean>
   handle_url(url: string): Promise<boolean>
-  init_in_webtab?(tab: WebTab): void
+  init_in_webtab?(/*tab: WebTab*/): void
   [key: string]: ((...args: unknown[]) => unknown) | PresenterOptions | string
 }
 
@@ -33,9 +30,9 @@ let presenters: Presenter[] = []
 function get_active(): Presenter[] {
   if (presenters.length == 0) {
     //TODO: determine if active from settings
-    const normalizedPath = path.join(__dirname, "presenters")
+    const normalizedPath = "" //path.join(__dirname, "presenters")
 
-    presenters = fs
+    presenters = [] /* fs
       .readdirSync(normalizedPath)
       .map((file_name: string) => {
         //TODO: better check
@@ -46,7 +43,7 @@ function get_active(): Presenter[] {
       .filter(
         (presenter) =>
           presenter != undefined && presenter.present && presenter.description
-      )
+      )*/
   }
 
   return presenters
@@ -102,18 +99,18 @@ function add_urlbar_buttons(elem, story, inmain = true) {
 }
 */
 
-export function init_in_webtab(tab: WebTab): void {
-  get_active().forEach((presenter) => {
+export function init_in_webtab(/*tab: WebTab*/): void {
+  /*get_active().forEach((presenter) => {
     if (presenter.init_in_webtab) {
       presenter.init_in_webtab(tab)
     }
-  })
+  })*/
 }
 
-export function context_link(con_menu: Menu, cmenu_data: CMenuData): void {
+export function context_link(/*con_menu: Menu, cmenu_data: CMenuData*/): void {
   get_active().forEach((presenter) => {
     if (Object.prototype.hasOwnProperty.call(presenter, "context_link")) {
-      presenter["context_link"](con_menu, cmenu_data)
+      presenter["context_link"](/*con_menu, cmenu_data*/)
     }
   })
 }

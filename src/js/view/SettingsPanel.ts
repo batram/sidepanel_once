@@ -1,39 +1,36 @@
-import { ipcRenderer } from "electron"
 import { OnceSettings } from "../OnceSettings"
+import { BackComms } from "../data/BackComms"
 
 export class SettingsPanel {
   constructor() {
-    ipcRenderer.send("settings", "subscribe_to_changes")
-    ipcRenderer.on(
-      "settings",
-      async (event, cmd: string, ...args: unknown[]) => {
-        switch (cmd) {
-          case "set_filter_area":
-            console.debug("set_filter_area", args)
-            this.set_filter_area()
-            break
-          case "set_redirect_area":
-            console.debug("set_redirect_area", args)
-            this.set_redirect_area()
-            break
-          case "set_sources_area":
-            console.debug("set_sources_area", args)
-            this.set_sources_area()
-            break
-          case "restore_theme_settings":
-            console.debug("restore_theme_settings", args)
-            this.restore_theme_settings()
-            break
-          case "restore_animation_settings":
-            console.debug("restore_animation_settings", args)
-            this.restore_animation_settings()
-            break
-          default:
-            console.log("unhandled settings_panel", cmd)
-            event.returnValue = null
-        }
+    BackComms.send("settings", "subscribe_to_changes")
+    BackComms.on("settings", async (event, cmd: string, ...args: unknown[]) => {
+      switch (cmd) {
+        case "set_filter_area":
+          console.debug("set_filter_area", args)
+          this.set_filter_area()
+          break
+        case "set_redirect_area":
+          console.debug("set_redirect_area", args)
+          this.set_redirect_area()
+          break
+        case "set_sources_area":
+          console.debug("set_sources_area", args)
+          this.set_sources_area()
+          break
+        case "restore_theme_settings":
+          console.debug("restore_theme_settings", args)
+          this.restore_theme_settings()
+          break
+        case "restore_animation_settings":
+          console.debug("restore_animation_settings", args)
+          this.restore_animation_settings()
+          break
+        default:
+          console.log("unhandled settings_panel", cmd)
+          event.returnValue = null
       }
-    )
+    })
 
     window
       .matchMedia("(prefers-color-scheme: dark)")
@@ -43,16 +40,14 @@ export class SettingsPanel {
 
     this.restore_theme_settings()
 
-    const theme_select = document.querySelector<HTMLSelectElement>(
-      "#theme_select"
-    )
+    const theme_select =
+      document.querySelector<HTMLSelectElement>("#theme_select")
     theme_select.addEventListener("change", () => {
       this.save_theme(theme_select.value)
     })
 
-    const anim_checkbox = document.querySelector<HTMLInputElement>(
-      "#anim_checkbox"
-    )
+    const anim_checkbox =
+      document.querySelector<HTMLInputElement>("#anim_checkbox")
     this.restore_animation_settings()
     anim_checkbox.addEventListener("change", () => {
       this.save_animation(anim_checkbox.checked)
@@ -73,9 +68,8 @@ export class SettingsPanel {
 
     this.set_sources_area()
 
-    const sources_area = document.querySelector<HTMLInputElement>(
-      "#sources_area"
-    )
+    const sources_area =
+      document.querySelector<HTMLInputElement>("#sources_area")
     sources_area.parentElement
       .querySelector('input[value="save"]')
       .addEventListener("click", () => {
@@ -123,9 +117,8 @@ export class SettingsPanel {
 
     this.set_redirect_area()
 
-    const redirect_area = document.querySelector<HTMLInputElement>(
-      "#redirect_area"
-    )
+    const redirect_area =
+      document.querySelector<HTMLInputElement>("#redirect_area")
     redirect_area.parentElement
       .querySelector('input[value="save"]')
       .addEventListener("click", () => {
@@ -161,33 +154,30 @@ export class SettingsPanel {
   async restore_theme_settings(): Promise<void> {
     const theme_value = await OnceSettings.remote.pouch_get("theme", "dark")
 
-    const theme_select = document.querySelector<HTMLSelectElement>(
-      "#theme_select"
-    )
+    const theme_select =
+      document.querySelector<HTMLSelectElement>("#theme_select")
     theme_select.value = theme_value
     this.set_theme(theme_value)
   }
 
   save_theme(name: string): void {
-    ipcRenderer.send("settings", "pouch_set", "theme", name)
+    BackComms.send("settings", "pouch_set", "theme", name)
     this.set_theme(name)
   }
 
   async restore_animation_settings(): Promise<void> {
     const checked = await OnceSettings.remote.pouch_get("animation", true)
 
-    const anim_checkbox = document.querySelector<HTMLInputElement>(
-      "#anim_checkbox"
-    )
+    const anim_checkbox =
+      document.querySelector<HTMLInputElement>("#anim_checkbox")
     anim_checkbox.checked = checked
     this.set_animation(checked)
   }
 
   save_animation(checked: boolean): void {
-    ipcRenderer.send("settings", "pouch_set", "animation", checked)
-    const anim_checkbox = document.querySelector<HTMLInputElement>(
-      "#anim_checkbox"
-    )
+    BackComms.send("settings", "pouch_set", "animation", checked)
+    const anim_checkbox =
+      document.querySelector<HTMLInputElement>("#anim_checkbox")
     anim_checkbox.checked = checked
     this.set_animation(checked)
   }
@@ -199,37 +189,35 @@ export class SettingsPanel {
   set_theme(name: string): void {
     switch (name) {
       case "dark":
-        ipcRenderer.send("settings", "set_theme", "dark")
+        BackComms.send("settings", "set_theme", "dark")
         break
       case "light":
-        ipcRenderer.send("settings", "set_theme", "light")
+        BackComms.send("settings", "set_theme", "light")
         break
       case "custom":
         console.debug("custom theme, not implement, just hanging out here :D")
         break
       case "system":
-        ipcRenderer.send("settings", "set_theme", "system")
+        BackComms.send("settings", "set_theme", "system")
         break
     }
   }
 
   async set_sources_area(): Promise<void> {
-    const sources_area = document.querySelector<HTMLInputElement>(
-      "#sources_area"
-    )
+    const sources_area =
+      document.querySelector<HTMLInputElement>("#sources_area")
     const story_sources = await OnceSettings.remote.story_sources()
     sources_area.value = story_sources.join("\n")
   }
 
   async save_sources_settings(): Promise<void> {
-    const sources_area = document.querySelector<HTMLInputElement>(
-      "#sources_area"
-    )
+    const sources_area =
+      document.querySelector<HTMLInputElement>("#sources_area")
     const story_sources = sources_area.value.split("\n").filter((x) => {
       return x.trim() != ""
     })
 
-    ipcRenderer.send("settings", "pouch_set", "story_sources", story_sources)
+    BackComms.send("settings", "pouch_set", "story_sources", story_sources)
   }
 
   async set_filter_area(): Promise<void> {
@@ -243,22 +231,20 @@ export class SettingsPanel {
     const filter_list = filter_area.value.split("\n").filter((x) => {
       return x.trim() != ""
     })
-    ipcRenderer.send("settings", "save_filterlist", filter_list)
+    BackComms.send("settings", "save_filterlist", filter_list)
   }
 
   async set_redirect_area(): Promise<void> {
-    const redirect_area = document.querySelector<HTMLInputElement>(
-      "#redirect_area"
-    )
+    const redirect_area =
+      document.querySelector<HTMLInputElement>("#redirect_area")
     const redirect_list = await OnceSettings.remote.get_redirectlist()
     redirect_area.value = OnceSettings.present_redirectlist(redirect_list)
   }
 
   save_redirect_settings(): void {
-    const redirect_area = document.querySelector<HTMLInputElement>(
-      "#redirect_area"
-    )
+    const redirect_area =
+      document.querySelector<HTMLInputElement>("#redirect_area")
     const redirect_list = OnceSettings.parse_redirectlist(redirect_area.value)
-    ipcRenderer.send("settings", "save_redirectlist", redirect_list)
+    BackComms.send("settings", "save_redirectlist", redirect_list)
   }
 }

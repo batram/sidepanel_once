@@ -1,5 +1,5 @@
-import * as path from "path"
-import * as fs from "fs"
+//import * as path from "path"
+//import * as fs from "fs"
 import { Story } from "../data/Story"
 
 export declare interface StoryParser {
@@ -24,19 +24,21 @@ export declare interface StoryParser {
 
 export function get_active(): StoryParser[] {
   //TODO: determine if active from settings
-  const normalizedPath = path.join(__dirname, "collectors")
+  const normalizedPath = "" //path.join(__dirname, "collectors")
 
-  return fs
-    .readdirSync(normalizedPath)
-    .map((file_name: string) => {
-      //TODO: better check
-      if (file_name.endsWith(".js")) {
-        return require(path.join(normalizedPath, file_name))
-      }
-    })
-    .filter((x: string) => {
-      return x != undefined
-    })
+  let collectors = [
+    "geny_match",
+    "hackernews_html",
+    "lobsters_html",
+    "reddit_json",
+    "reddit_rss",
+    "twitter_html",
+    "vanilla_rss",
+  ]
+
+  return collectors.map((x) => {
+    return require("./collectors/" + x)
+  })
 }
 
 export function get_parser(): StoryParser[] {

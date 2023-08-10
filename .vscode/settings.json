@@ -7,8 +7,7 @@
   "window.title": "${rootName}${separator}${activeEditorShort}",
   "files.exclude": {
     ".once_db": true,
-    "**/node_modules": true,
-    "dist": true
+    "**/node_modules": true
   },
   "git.scanRepositories": [".git"],
   "git.supportCancellation": true,

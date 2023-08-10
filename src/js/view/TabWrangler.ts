@@ -1,4 +1,4 @@
-import { ipcRenderer } from "electron"
+import { BackComms } from "../data/BackComms"
 import * as StoryFilterView from "../view/StoryFilterView"
 import { StoryMap } from "../data/StoryMap"
 import * as story_list from "./StoryList"
@@ -30,7 +30,7 @@ export class TabWrangler {
           func.call(TabWrangler.instance, ...args)
         }
       } else {
-        ipcRenderer.send("forward_to_parent", func_name, ...args)
+        BackComms.send("forward_to_parent", func_name, ...args)
       }
     },
     send_to_new_tab: function (
@@ -96,137 +96,99 @@ export class TabWrangler {
   //close the window if we have no more tabs and are not the last window open
   maybe_close_window(): void {
     if (document.querySelectorAll(".tab").length == 0) {
-      ipcRenderer.send("no_more_tabs_can_i_go")
+      BackComms.send("no_more_tabs_can_i_go")
     }
   }
 
   init_webtab_comms(): void {
-    ipcRenderer.on(
-      "search_stories",
-      (event: Electron.IpcRendererEvent, needle) => {
-        console.debug("search_stories", needle)
-        search_stories(needle)
-      }
-    )
+    BackComms.on("search_stories", (event: any, needle) => {
+      console.debug("search_stories", needle)
+      search_stories(needle)
+    })
 
-    ipcRenderer.on(
+    BackComms.on(
       "send_to_new_tab",
-      (
-        event: Electron.IpcRendererEvent,
-        channel: string,
-        ...args: string[]
-      ) => {
+      (event: any, channel: string, ...args: string[]) => {
         console.debug("send_to_new_tab", ...args)
         this.send_to_new_tab(channel, ...args)
       }
     )
 
-    ipcRenderer.on(
+    BackComms.on(
       "send_or_create_tab",
-      (
-        event: Electron.IpcRendererEvent,
-        channel: string,
-        ...args: string[]
-      ) => {
+      (event: any, channel: string, ...args: string[]) => {
         console.debug("send_or_create_tab", ...args)
         this.send_or_create_tab(channel, ...args)
       }
     )
 
-    ipcRenderer.on(
-      "update-target-url",
-      (event: Electron.IpcRendererEvent, url: string) => {
-        const url_target = document.querySelector<HTMLElement>("#url_target")
-        if (!url_target) {
-          return
-        }
+    BackComms.on("update-target-url", (event: any, url: string) => {
+      const url_target = document.querySelector<HTMLElement>("#url_target")
+      if (!url_target) {
+        return
+      }
 
-        if (url && url != "") {
-          url_target.style.opacity = "1"
-          url_target.style.zIndex = "16"
-          if (url.length <= 63) {
-            url_target.innerText = url
-          } else {
-            url_target.innerText = url.substring(0, 60) + "..."
-          }
+      if (url && url != "") {
+        url_target.style.opacity = "1"
+        url_target.style.zIndex = "16"
+        if (url.length <= 63) {
+          url_target.innerText = url
         } else {
-          url_target.style.opacity = "0"
-          url_target.style.zIndex = "-1"
+          url_target.innerText = url.substring(0, 60) + "..."
         }
+      } else {
+        url_target.style.opacity = "0"
+        url_target.style.zIndex = "-1"
       }
-    )
+    })
 
-    ipcRenderer.on(
-      "open_in_new_tab",
-      (event: Electron.IpcRendererEvent, url: string) => {
-        this.open_in_new_tab(url)
-      }
-    )
-    ipcRenderer.on(
-      "open_in_new_window",
-      (event: Electron.IpcRendererEvent, url: string) => {
-        ipcRenderer.send("open_in_new_window", url)
-      }
-    )
+    BackComms.on("open_in_new_tab", (event: any, url: string) => {
+      this.open_in_new_tab(url)
+    })
+    BackComms.on("open_in_new_window", (event: any, url: string) => {
+      BackComms.send("open_in_new_window", url)
+    })
 
-    ipcRenderer.on(
-      "open_in_tab",
-      (event: Electron.IpcRendererEvent, url: string) => {
-        this.open_in_tab(url)
-      }
-    )
+    BackComms.on("open_in_tab", (event: any, url: string) => {
+      this.open_in_tab(url)
+    })
 
-    ipcRenderer.on("detaching", (event: Electron.IpcRendererEvent) => {
+    BackComms.on("detaching", (event: any) => {
       console.log("detaching", event)
       this.remove_tab_el(event.senderId)
     })
 
-    ipcRenderer.on(
-      "show_filter",
-      (event: Electron.IpcRendererEvent, data: string) => {
-        StoryFilterView.show_filter(data)
-      }
-    )
+    BackComms.on("show_filter", (event: any, data: string) => {
+      StoryFilterView.show_filter(data)
+    })
 
-    ipcRenderer.on(
+    BackComms.on(
       "update_tab_info",
-      (event: Electron.IpcRendererEvent, href: string, title?: string) => {
+      (event: any, href: string, title?: string) => {
         this.update_tab_info(event.senderId, href, title)
       }
     )
 
-    ipcRenderer.on(
-      "tab_close",
-      (event: Electron.IpcRendererEvent, wc_id: string) => {
-        this.close_tab(this.tab_el_from_id(parseInt(wc_id)))
-      }
-    )
+    BackComms.on("tab_close", (event: any, wc_id: string) => {
+      this.close_tab(this.tab_el_from_id(parseInt(wc_id)))
+    })
 
-    ipcRenderer.on(
-      "tab_dupe",
-      (event: Electron.IpcRendererEvent, wc_id: string) => {
-        const tab_el = this.tab_el_from_id(parseInt(wc_id))
-        this.open_in_new_tab(tab_el.dataset.href)
-      }
-    )
+    BackComms.on("tab_dupe", (event: any, wc_id: string) => {
+      const tab_el = this.tab_el_from_id(parseInt(wc_id))
+      this.open_in_new_tab(tab_el.dataset.href)
+    })
 
-    ipcRenderer.on(
-      "tab_media_paused",
-      (event: Electron.IpcRendererEvent, audible) => {
-        console.debug("tab_media_paused", event, audible)
-        const tab_el = this.tab_el_from_id(event.senderId)
-        tab_el.setAttribute("media", "paused")
-      }
-    )
+    BackComms.on("tab_media_paused", (event: any, audible) => {
+      console.debug("tab_media_paused", event, audible)
+      const tab_el = this.tab_el_from_id(event.senderId)
+      tab_el.setAttribute("media", "paused")
+    })
 
-    ipcRenderer.on(
-      "tab_media_started_playing",
-      (event: Electron.IpcRendererEvent, audible) => {
-        console.debug("tab_media_started_playing", event, audible)
-        const tab_el = this.tab_el_from_id(event.senderId)
-        tab_el.setAttribute("media", "started")
-      }
-    )
+    BackComms.on("tab_media_started_playing", (event: any, audible) => {
+      console.debug("tab_media_started_playing", event, audible)
+      const tab_el = this.tab_el_from_id(event.senderId)
+      tab_el.setAttribute("media", "started")
+    })
   }
 
   insert_tab_by_offleft(tab_el: HTMLElement): void {
@@ -297,7 +259,7 @@ export class TabWrangler {
         this.tab_image_overly.style.opacity = "0.8"
 
         const gen_img = async () => {
-          const img_url = await ipcRenderer.invoke(
+          const img_url = await BackComms.invoke(
             "pic_webtab",
             this.active_wc_id
           )
@@ -308,7 +270,7 @@ export class TabWrangler {
         gen_img()
 
         this.tabcontent_element.append(this.tab_image_overly)
-        ipcRenderer.send("hide_webtab", this.active_wc_id)
+        BackComms.send("hide_webtab", this.active_wc_id)
       }
       return true
     })
@@ -369,7 +331,7 @@ export class TabWrangler {
     window_content.classList.remove("active_drag")
 
     if (this.tab_image_overly) {
-      ipcRenderer.send("attach_wc_id", this.active_wc_id)
+      BackComms.send("attach_wc_id", this.active_wc_id)
       this.tab_image_overly.outerHTML = ""
       this.tab_image_overly = null
     }
@@ -454,7 +416,7 @@ export class TabWrangler {
       "contextmenu",
       (e) => {
         e.preventDefault()
-        ipcRenderer.send(
+        BackComms.send(
           "show_tab_menu",
           e.x,
           e.y,
@@ -522,12 +484,12 @@ export class TabWrangler {
       return x
     })
 
-    ipcRenderer.sendTo(id, channel, ...args)
+    BackComms.sendTo(id, channel, ...args)
   }
 
   async send_to_new_tab(channel: string, ...args: string[]): Promise<number> {
     const wc_id = await this.new_webtab()
-    ipcRenderer.send("when_webview_ready", wc_id, channel, ...args)
+    BackComms.send("when_webview_ready", wc_id, channel, ...args)
     return wc_id
   }
 
@@ -617,9 +579,9 @@ export class TabWrangler {
     mediastate.classList.add("tab_mediastate")
     mediastate.onclick = () => {
       if (tab_el.getAttribute("media") == "paused") {
-        ipcRenderer.sendTo(wc_id, "start_media")
+        BackComms.sendTo(wc_id, "start_media")
       } else {
-        ipcRenderer.sendTo(wc_id, "pause_media")
+        BackComms.sendTo(wc_id, "pause_media")
       }
     }
     tab_el.append(mediastate)
@@ -649,7 +611,7 @@ export class TabWrangler {
   }
 
   async grab_attached_or_new(): Promise<boolean> {
-    const wc_id = await ipcRenderer.invoke("get_attached_wc_id")
+    const wc_id = await BackComms.invoke("get_attached_wc_id")
 
     console.log("attacjed?", wc_id, wc_id != null)
 
@@ -692,9 +654,9 @@ export class TabWrangler {
   async attach_webtab(wc_id: number): Promise<number> {
     let re_wc_id = null
     if (wc_id != null && wc_id != 0) {
-      re_wc_id = await ipcRenderer.invoke("attach_wc_id", wc_id)
+      re_wc_id = await BackComms.invoke("attach_wc_id", wc_id)
     } else {
-      re_wc_id = await ipcRenderer.invoke("attach_new_tab")
+      re_wc_id = await BackComms.invoke("attach_new_tab")
     }
 
     if (!re_wc_id) {
@@ -716,7 +678,7 @@ export class TabWrangler {
               width: Math.floor(size_to_el.clientWidth),
               height: Math.floor(size_to_el.clientHeight),
             }
-            ipcRenderer.send("bound_attached", this.active_wc_id, bounds)
+            BackComms.send("bound_attached", this.active_wc_id, bounds)
           }
         }
       })

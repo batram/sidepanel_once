@@ -3,7 +3,7 @@ import * as StoryFilterView from "../view/StoryFilterView"
 import { Story, SubStory } from "../data/Story"
 import * as presenters from "./presenters_frontend"
 import * as story_list from "../view/StoryList"
-import { ipcRenderer } from "electron"
+import { BackComms } from "../data/BackComms"
 import { URLRedirect } from "../data/URLRedirect"
 import { StoryMap } from "../data/StoryMap"
 import { StoryHistory } from "./StoryHistory"
@@ -54,7 +54,27 @@ export class StoryListItem extends HTMLElement {
     this.link.innerText = this.story.title
     this.link.addEventListener("click", () => {
       this.read_btn.classList.add("user_interaction")
+      open_story(this.story.href, "_self")
     })
+    this.link.addEventListener("mouseup", (e: MouseEvent) => {
+      if (e.button == 1) {
+        this.read_btn.classList.add("user_interaction")
+        open_story(this.story.href, "middle")
+
+        e.stopPropagation()
+        e.preventDefault()
+        return true
+      }
+    })
+
+    this.link.addEventListener("mousedown", (e: MouseEvent) => {
+      if (e.button == 1) {
+        e.stopPropagation()
+        e.preventDefault()
+        return true
+      }
+    })
+
     title_line.appendChild(this.link)
 
     const og_link = document.createElement("a")
@@ -201,14 +221,14 @@ export class StoryListItem extends HTMLElement {
   button_events(): void {
     this.filter_btn.onclick = (event) => {
       if (this.classList.contains("filtered")) {
-        ipcRenderer.send("forward_to_parent", "show_filter", this.story.filter)
+        BackComms.send("forward_to_parent", "show_filter", this.story.filter)
       } else {
         StoryFilterView.show_filter_dialog(
           event,
           this.filter_btn,
           this.story,
           (filter) => {
-            ipcRenderer.send("settings", "add_filter", filter)
+            BackComms.send("settings", "add_filter", filter)
           }
         )
       }
@@ -231,12 +251,14 @@ export class StoryListItem extends HTMLElement {
     //open story with middle click on "skip reading"
     this.read_btn.addEventListener("mouseup", (e: MouseEvent) => {
       if (e.button == 1) {
-        window.open(this.story.href)
+        open_story(this.story.href, "blank")
+
         e.stopPropagation()
         e.preventDefault()
         return true
       }
     })
+
     this.read_btn.addEventListener("mousedown", (e: MouseEvent) => {
       if (e.button == 1) {
         e.stopPropagation()
@@ -385,7 +407,7 @@ export class StoryListItem extends HTMLElement {
             "skipped"
           )
         } else {
-          window.open(this.link.href, "new_tab")
+          open_story(this.story.href, "_self")
         }
       }
 
@@ -421,6 +443,11 @@ export class StoryListItem extends HTMLElement {
     comments_link.innerText = " [comments] "
     comments_link.href = sub_story_ob.comment_url
     info.appendChild(comments_link)
+
+    comments_link.addEventListener("click", (e) => {
+      console.log("clickedy comments link", e)
+      open_story(comments_link.href, "_self")
+    })
 
     const time = document.createElement("div")
     time.innerText = story_parser.human_time(sub_story_ob.timestamp)
@@ -575,4 +602,19 @@ export class StoryListItem extends HTMLElement {
 
 if (window.customElements) {
   window.customElements.define("story-item", StoryListItem)
+}
+
+function open_story(href: string, target: string) {
+  StoryMap.remote.persist_story_change(href, "read_state", "read")
+  if (target == "middle") {
+    return
+  }
+  if (target == "_self") {
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      var tab = tabs[0]
+      chrome.tabs.update(tab.id, { url: href })
+    })
+  } else {
+    window.open(href, target)
+  }
 }

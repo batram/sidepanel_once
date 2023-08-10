@@ -6,7 +6,7 @@ export const options = {
   collects: "json",
   colors: ["#cee3f8", "black"],
   settings: {
-    min_points: 15,
+    min_points: 35,
   },
 }
 
@@ -33,11 +33,11 @@ interface RedditJSONData {
   }
 }
 
-export function parse(json: RedditJSONData): Story[] {
+export function parse(json: RedditJSONData, filter = true): Story[] {
   if (json.kind == "Listing") {
     return json.data.children
       .map((story) => {
-        if (story.data.ups < options.settings.min_points) {
+        if (filter && story.data.ups < options.settings.min_points) {
           return
         }
         const new_story = new Story(
@@ -83,7 +83,7 @@ export async function global_search(needle: string): Promise<Story[]> {
   const res = await fetch(search_url + encodeURIComponent(needle))
   if (res.ok) {
     const json_response = await res.json()
-    return parse(json_response)
+    return parse(json_response, false)
   }
   return []
 }

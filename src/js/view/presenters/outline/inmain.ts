@@ -1,15 +1,16 @@
-import { ipcMain, session } from "electron"
-import * as fs from "fs"
-import * as path from "path"
-import * as tabbed_out from "../../../view/tabbed_out"
-import { Menu, MenuItem } from "electron"
-import { CMenuData } from "../../../view/contextmenu"
+//import { ipcMain, session } from "electron"
+//import * as fs from "fs"
+//import * as path from "path"
+//import * as tabbed_out from "../../../view/tabbed_out"
+//import { Menu, MenuItem } from "electron"
+//import { CMenuData } from "../../../view/contextmenu"
 
-const outline_css = fs.readFileSync(path.join(__dirname, "outline_style.css"))
-const outline_font = fs.readFileSync(path.join(__dirname, "spectral.ttf"))
+//const outline_css = fs.readFileSync(path.join(__dirname, "outline_style.css"))
+//const outline_font = fs.readFileSync(path.join(__dirname, "spectral.ttf"))
 const outlined: Record<string, string> = {}
 
 export function custom_protocol(): void {
+  /*
   ipcMain.on("outlined", (event, url, data) => {
     console.debug("outlined", url)
     outlined[url] = data
@@ -43,10 +44,11 @@ export function custom_protocol(): void {
           mimeType: "text/html",
         })
       }
-    })
+    })*/
 }
 
-export function context_link(con_menu: Menu, cmenu_data: CMenuData): void {
+export function context_link(/*con_menu: Menu, cmenu_data: CMenuData*/): void {
+  /*
   con_menu.append(
     new MenuItem({
       id: "url_reader_open",
@@ -60,5 +62,5 @@ export function context_link(con_menu: Menu, cmenu_data: CMenuData): void {
         )
       },
     })
-  )
+  )*/
 }

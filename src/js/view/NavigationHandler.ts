@@ -1,8 +1,7 @@
 import { URLRedirect } from "../data/URLRedirect"
-import * as tabbed_out from "../view/tabbed_out"
-import { execFile } from "child_process"
 
 export class NavigationHandler {
+  /*
   webContents: Electron.WebContents
   static custom_protocol_handlers: Record<
     string,
@@ -23,11 +22,8 @@ export class NavigationHandler {
         console.debug("new-window", frameName, args)
         if (frameName == "popout-window" || disposition == "new-window") {
           NavigationHandler.open_url(webContents, event, url, "popout-window")
-        } else if (disposition == "foreground-tab") {
+        } else if (disposition == "foreground-tab" && frameName != "new_tab") {
           event.preventDefault()
-          execFile("chrome", [url], function (err, data) {
-            console.log(err, data)
-          })
         } else {
           NavigationHandler.open_url(webContents, event, url, "blank")
         }
@@ -107,4 +103,5 @@ export class NavigationHandler {
       }
     }
   }
+  */
 }

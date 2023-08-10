@@ -1,15 +1,14 @@
 import { Story } from "../../data/Story"
 import { StoryListItem } from "../StoryListItem"
-import { TabWrangler } from "../TabWrangler"
-import { ipcRenderer } from "electron"
+import { BackComms } from "../../data/BackComms"
 import * as child_process from "child_process"
 import * as path from "path"
-import { WebTab } from "../WebTab"
+//import { WebTab } from "../WebTab"
 
 export const description = "Presents contents of a webpage in more readable way"
 const player_html_path =
   "file://" + path.join(__dirname, "video", "player.html")
-let current_tab: WebTab
+//let current_tab: WebTab
 
 export const presenter_options: Record<
   string,
@@ -186,11 +185,11 @@ export function story_elem_button(story: Story, intab = false): HTMLElement {
 
     video_btn.addEventListener("mouseup", (event) => {
       if (event.button == 0) {
-        TabWrangler.ops.send_or_create_tab("video", story.href)
+        //TabWrangler.ops.send_or_create_tab("video", story.href)
       } else if (event.button == 1) {
         event.preventDefault()
         event.stopPropagation()
-        TabWrangler.ops.send_to_new_tab("video", story.href)
+        //TabWrangler.ops.send_to_new_tab("video", story.href)
         return false
       }
       //TODO: show cache options on 2?
@@ -205,9 +204,9 @@ export function story_elem_button(story: Story, intab = false): HTMLElement {
   return video_btn
 }
 
-export function init_in_webtab(tab: WebTab): void {
-  current_tab = tab
-  ipcRenderer.on("video", (_event, href) => {
+export function init_in_webtab(): void {
+  //current_tab = tab
+  BackComms.on("video", (_event, href) => {
     video_button_active()
     present(href)
   })
@@ -234,7 +233,8 @@ export function urlbar_button(): HTMLElement {
   button.style.marginRight = "3px"
 
   button.onclick = () => {
-    const webview = document.querySelector<Electron.WebviewTag>("#webview")
+    alert(/moin/)
+    /*const webview = document.querySelector<Electron.WebviewTag>("#webview")
     const urlfield = document.querySelector<HTMLInputElement>("#urlfield")
     if (!webview || !urlfield) {
       console.error(
@@ -249,7 +249,7 @@ export function urlbar_button(): HTMLElement {
       webview.setAttribute("src", urlfield.value)
     } else {
       present(urlfield.value)
-    }
+    }*/
   }
 
   return button
@@ -276,6 +276,9 @@ async function video_dl(url: string): Promise<VideoDLInfo> {
 }
 
 export async function present(url: string): Promise<boolean> {
+  let src: { src: string; type?: string; title?: string } = null
+  let title: string = null
+  /*
   const webview = document.querySelector<Electron.WebviewTag>("#webview")
   const urlfield = document.querySelector<HTMLInputElement>("#urlfield")
   if (!webview || !urlfield) {
@@ -296,8 +299,6 @@ export async function present(url: string): Promise<boolean> {
   webview.setAttribute("src", extracting_info + "#" + b64_json_info)
 
   //TODO: this is way to slow ... extract pattern
-  let src: { src: string; type?: string; title?: string } = null
-  let title: string = null
   const shortcut_src = await shortcut(url)
   if (shortcut_src) {
     src = shortcut_src
@@ -313,11 +314,13 @@ export async function present(url: string): Promise<boolean> {
       title = video_info.title
     }
   }
+  */
 
   return show_video({ url: url, src: src, title: title }, url)
 }
 
 function fallback_to_src(url: string) {
+  /*
   const webview = document.querySelector<Electron.WebviewTag>("#webview")
 
   const src_fail =
@@ -331,7 +334,7 @@ function fallback_to_src(url: string) {
   setTimeout(() => {
     video_button_inactive()
     webview.setAttribute("src", url)
-  }, 2000)
+  }, 2000)*/
 }
 
 function show_video(
@@ -342,25 +345,25 @@ function show_video(
   },
   url: string
 ): boolean {
-  const webview = document.querySelector<Electron.WebviewTag>("#webview")
+  //const webview = document.querySelector<Electron.WebviewTag>("#webview")
 
   if (video_info && video_info.src) {
-    current_tab.set_url(url)
+    //current_tab.set_url(url)
     video_info.title = video_info.title.replace(/[\u0250-\ue007]/g, "")
     const b64_json_info = "vidinfo_" + btoa(JSON.stringify(video_info))
 
     const vid_ready = () => {
       video_button_active()
-      webview.loadURL(
+      /* webview.loadURL(
         player_html_path + "?" + Math.random() + "#" + b64_json_info
       )
       current_tab.set_url(url)
-      webview.removeEventListener("dom-ready", vid_ready)
+      webview.removeEventListener("dom-ready", vid_ready)*/
     }
     try {
       vid_ready()
     } catch (e) {
-      webview.addEventListener("dom-ready", vid_ready)
+      //webview.addEventListener("dom-ready", vid_ready)
     }
     return true
   } else {
@@ -534,13 +537,13 @@ async function source_youtube(
                 for (const format of player_response.streamingData
                   .adaptiveFormats) {
                   const ul = new URLSearchParams(format.signatureCipher)
-                  const webview =
+                  /*const webview =
                     document.querySelector<Electron.WebviewTag>("#webview")
                   const defunged = await webview.executeJavaScript(
                     fungy_code + "\n" + `fungy(atob("${btoa(ul.get("s"))}"))`
                   )
                   format.url =
-                    ul.get("url") + "&" + ul.get("sp") + "=" + defunged
+                    ul.get("url") + "&" + ul.get("sp") + "=" + defunged*/
                 }
               }
             } else {

@@ -1,8 +1,6 @@
 import * as search from "../data/search"
-import * as seperation_slider from "../view/sep_slider"
 
 export function open_panel(panel: string): void {
-  seperation_slider.expand_left()
   const left_panel = document.querySelector<HTMLElement>("#left_panel")
   left_panel.setAttribute("active_panel", panel)
 }
@@ -44,14 +42,12 @@ export function add_entry(
 
     type_el.onclick = () => {
       open_panel("stories")
-      const search_scope = document.querySelector<HTMLInputElement>(
-        "#search_scope"
-      )
+      const search_scope =
+        document.querySelector<HTMLInputElement>("#search_scope")
       search_scope.value = "local"
 
-      const searchfield = document.querySelector<HTMLInputElement>(
-        "#searchfield"
-      )
+      const searchfield =
+        document.querySelector<HTMLInputElement>("#searchfield")
       searchfield.value = label
       search.search_stories(label)
     }
