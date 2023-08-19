@@ -238,121 +238,79 @@ export class StoryMap {
     })
   }
 
-  async add(story: Story, bucket = "stories"): Promise<Story> {
-    if (!(story instanceof Story)) {
-      console.log("wrong StoryMap entry", story)
+  async add(new_story: Story, bucket = "stories"): Promise<Story> {
+    if (!(new_story instanceof Story)) {
+      console.log("wrong StoryMap entry", new_story)
       throw "Please, only put stories in the StoryMap"
     }
 
-    story.bucket = bucket
+    new_story.bucket = bucket
 
     let og_story: Story
 
     if (this.internal_map_ready) {
-      og_story = this.get(story.href)
+      og_story = this.get(new_story.href)
     } else {
-      og_story = await OnceSettings.instance.get_story(story.href)
+      og_story = await OnceSettings.instance.get_story(new_story.href)
     }
-
-    console.debug(
-      "add story",
-      story.href,
-      "new",
-      story,
-      "og",
-      og_story,
-      "map size",
-      this.internal_map.size
-    )
 
     if (!og_story) {
       //new story
-      story = this.set(story.href.toString(), story)
-      story = await OnceSettings.instance.save_story(story)
-    } else {
-      //check if we already have as alternate source
-      const curls = og_story.substories.map((x) => {
-        return x.comment_url
-      })
+      new_story = this.set(new_story.href.toString(), new_story)
+      new_story = await OnceSettings.instance.save_story(new_story)
 
-      if (
-        story.comment_url == og_story.comment_url &&
-        JSON.stringify(story.tags) != JSON.stringify(og_story.tags)
-      ) {
-        //TODO: are tags different
-        const prev_tags = og_story.tags
-        story.tags.forEach((tag) => {
-          if (!og_story.tags.map((t) => t.text).includes(tag.text)) {
-            og_story.tags.push(tag)
-          }
-        })
-        this.emit_data_change(
-          [og_story.href, "tags"],
-          og_story.tags,
-          prev_tags,
-          null
-        )
-        og_story = await OnceSettings.instance.save_story(og_story)
-      }
-
-      if (
-        story.comment_url != og_story.comment_url &&
-        !curls.includes(story.comment_url)
-      ) {
-        const prev_subs = og_story.substories
-        //duplicate story
-        og_story.substories.push({
-          type: story.type,
-          comment_url: story.comment_url,
-          timestamp: story.timestamp,
-          tags: story.tags,
-        })
-        this.emit_data_change(
-          [og_story.href, "substories"],
-          og_story.substories,
-          prev_subs,
-          null
-        )
-        og_story = await OnceSettings.instance.save_story(og_story)
-      }
-      /*
-      if (story._attachments) {
-        const prev_attached = og_story._attachments
-        if (!og_story._attachments) {
-          og_story._attachments = story._attachments
-        } else {
-          for (const i in story._attachments) {
-            if (story._attachments[i].data) {
-              if (og_story._attachments[i]) {
-                //TODO: compare md5
-                if (
-                  og_story._attachments[i].length !=
-                  story._attachments[i].data.length
-                ) {
-                  og_story._attachments[i] = story._attachments[i]
-                }
-              } else {
-                og_story._attachments[i] = story._attachments[i]
-              }
-            }
-          }
-        }
-        if (prev_attached != og_story._attachments) {
-          this.emit_data_change(
-            [story.href, "_attachments"],
-            og_story._attachments,
-            prev_attached,
-            null
-          )
-          og_story = await OnceSettings.instance.save_story(og_story)
-        }
-      }
-*/
-
-      story = og_story
+      return new_story
     }
-    console.debug("add story end", story.href, "new", story, "og", og_story)
 
-    return story
+    //old story, add new info if needed
+
+    //tags
+    if (
+      new_story.comment_url == og_story.comment_url &&
+      JSON.stringify(new_story.tags) != JSON.stringify(og_story.tags)
+    ) {
+      //TODO: are tags different
+      const prev_tags = og_story.tags
+      new_story.tags.forEach((tag) => {
+        if (!og_story.tags.map((t) => t.text).includes(tag.text)) {
+          og_story.tags.push(tag)
+        }
+      })
+      this.emit_data_change(
+        [og_story.href, "tags"],
+        og_story.tags,
+        prev_tags,
+        null
+      )
+      og_story = await OnceSettings.instance.save_story(og_story)
+    }
+
+    //comment urls
+    const og_curls = og_story.substories.map((x) => {
+      return x.comment_url
+    })
+
+    if (
+      new_story.comment_url != og_story.comment_url &&
+      !og_curls.includes(new_story.comment_url)
+    ) {
+      const prev_subs = og_story.substories
+      //duplicate story
+      og_story.substories.push({
+        type: new_story.type,
+        comment_url: new_story.comment_url,
+        timestamp: new_story.timestamp,
+        tags: new_story.tags,
+      })
+      this.emit_data_change(
+        [og_story.href, "substories"],
+        og_story.substories,
+        prev_subs,
+        null
+      )
+      og_story = await OnceSettings.instance.save_story(og_story)
+    }
+
+    return og_story
   }
 }

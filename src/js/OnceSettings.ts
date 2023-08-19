@@ -315,13 +315,6 @@ export class OnceSettings {
   }
 
   async save_story(story: Story): Promise<Story> {
-    if (story._attachments) {
-      for (const i in story._attachments) {
-        if (story._attachments[i].raw_content) {
-          story._attachments[i].data = btoa(story._attachments[i].raw_content)
-        }
-      }
-    }
     const resp = await this.once_db
       .get(this.story_id(story.href))
       .then((doc) => {

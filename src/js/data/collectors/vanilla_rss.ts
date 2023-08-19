@@ -168,15 +168,6 @@ function common_rss_parser(doc: Document, def: FeedFormat) {
 
     const new_story = new Story(options.type, link, title, link, timestamp)
 
-    if (content) {
-      new_story._attachments = {
-        content: {
-          content_type: "text/plain",
-          raw_content: content,
-        },
-      }
-    }
-
     const user_tag = {
       class: "user",
       text: main_title,
