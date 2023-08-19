@@ -209,6 +209,7 @@ export function parse_human_time(str: string): number {
 
   return now - offset
 }
+
 function cache_result(url: string, content: string) {
   if (content.length < 100 * 1000) {
     try {
