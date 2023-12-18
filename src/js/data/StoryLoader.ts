@@ -71,7 +71,7 @@ async function cache_load(url: string, try_cache = true) {
 
   const parser = story_parser.get_parser_for_url(url)
   if (!parser) {
-    console.error("no parser for", url)
+    console.info("no parser for", url)
     return
   }
 
