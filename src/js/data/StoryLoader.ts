@@ -58,7 +58,7 @@ async function process_story_input(stories: Story[], group_name: string) {
       href: "search:" + "*" + group_name,
     })
   })
-  StoryMap.remote.stories_loaded(all_stories, "stories")
+  StoryMap.instance.stories_loaded(all_stories, "stories")
 }
 
 //data loader

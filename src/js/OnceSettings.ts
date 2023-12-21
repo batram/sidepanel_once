@@ -2,8 +2,8 @@ import PouchDB from "pouchdb-browser"
 import { StoryMap } from "./data/StoryMap"
 import { Story } from "./data/Story"
 import { Redirect, URLRedirect } from "./data/URLRedirect"
-//import * as fs from "fs"
-import { BackComms } from "./data/BackComms"
+import * as StoryList from "./view/StoryList"
+import { SettingsPanel } from "./view/SettingsPanel"
 
 export class OnceSettings {
   default_sources = [
@@ -17,33 +17,6 @@ export class OnceSettings {
   syncHandler: PouchDB.Replication.Sync<Record<string, unknown>>
   once_db: PouchDB.Database<Record<string, unknown>>
   static instance: OnceSettings
-
-  static remote = {
-    grouped_story_sources(): Promise<Record<string, string[]>> {
-      return BackComms.invoke("inv_settings", "grouped_story_sources")
-    },
-    story_sources(): Promise<string[]> {
-      return BackComms.invoke("inv_settings", "story_sources")
-    },
-    get_sync_url(): Promise<string> {
-      return BackComms.invoke("inv_settings", "get_sync_url")
-    },
-    set_sync_url(url: string): Promise<string> {
-      return BackComms.invoke("inv_settings", "set_sync_url", url)
-    },
-    get_filterlist(): Promise<string[]> {
-      return BackComms.invoke("inv_settings", "get_filterlist")
-    },
-    get_redirectlist(): Promise<Redirect[]> {
-      return BackComms.invoke("inv_settings", "get_redirectlist")
-    },
-    pouch_get<T>(id: string, fallback_value: T): Promise<T> {
-      return BackComms.invoke("inv_settings", "pouch_get", id, fallback_value)
-    },
-    getAttachment(id: string, key: string): Promise<string> {
-      return BackComms.invoke("inv_settings", "getAttachment", id, key)
-    },
-  }
 
   subscribers: Number[] = []
   animated = true
@@ -69,76 +42,6 @@ export class OnceSettings {
 
     //URLRedirect.init()
 
-    BackComms.handlex("inv_settings", async (event, cmd, ...args: any[]) => {
-      let argl = args[0]
-      switch (cmd) {
-        case "story_sources":
-          return this.story_sources()
-        case "grouped_story_sources":
-          return this.grouped_story_sources()
-        case "get_sync_url":
-          return await this.get_sync_url()
-        case "set_sync_url":
-          return this.set_sync_url(argl[0] as string)
-        case "get_filterlist":
-          return this.get_filterlist()
-        case "get_redirectlist":
-          return this.get_redirectlist()
-        case "pouch_get":
-          return this.pouch_get(argl[0] as string, argl[1])
-        case "getAttachment": {
-          const tat = this.once_db.getAttachment(
-            argl[0] as string,
-            argl[1] as string
-          )
-          console.log("getAttachment", argl[0], argl[1], tat)
-          return tat
-        }
-        default:
-          console.log("unhandled inv_settings", cmd)
-      }
-    })
-
-    BackComms.on("settings", async (event, cmd, ...args: any[]) => {
-      switch (cmd) {
-        case "subscribe_to_changes":
-          if (!this.subscribers.includes(event.sender)) {
-            this.subscribers.push(event.sender)
-          }
-          break
-        case "set_theme":
-          //TODO: set theme
-          //nativeTheme.themeSource = args[0] as "system" | "light" | "dark"
-          break
-        case "pouch_set":
-          console.log("pouch_set", args[0], args[1])
-          event.returnValue = await this.pouch_set(
-            args[0] as string,
-            args[1],
-            console.log
-          )
-          break
-        case "sync_url": {
-          this.set_sync_url(args[0][0] as string)
-          break
-        }
-        case "save_filterlist":
-          event.returnValue = await this.save_filterlist(args[0] as string[])
-          break
-        case "save_redirectlist":
-          event.returnValue = await this.save_redirectlist(
-            args[0] as Redirect[]
-          )
-          break
-        case "add_filter":
-          this.add_filter(args[0] as string)
-          break
-        default:
-          console.log("unhandled settings", cmd)
-          event.returnValue = null
-      }
-    })
-
     this.once_db
       .changes({
         since: "now",
@@ -160,22 +63,23 @@ export class OnceSettings {
         } else {
           switch (change.id) {
             case "story_sources":
-              BackComms.send("settings", "set_sources_area")
-              BackComms.send("story_list", "reload")
+              console.debug("change sto source", change)
+              SettingsPanel.instance.set_sources_area()
+              StoryList.reload()
               break
             case "filter_list":
-              BackComms.send("settings", "set_filter_area")
-              BackComms.send("story_list", "refilter")
+              SettingsPanel.instance.set_filter_area()
+              StoryList.refilter()
               break
             case "redirect_list":
-              BackComms.send("settings", "set_redirect_area")
+              SettingsPanel.instance.set_redirect_area()
               break
             case "theme":
-              BackComms.send("settings", "restore_theme_settings")
+              SettingsPanel.instance.restore_theme_settings()
               break
             case "animation":
               this.animated = change.doc.list as boolean
-              BackComms.send("settings", "restore_animation_settings")
+              SettingsPanel.instance.restore_animation_settings()
           }
         }
       })

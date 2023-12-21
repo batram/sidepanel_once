@@ -3,10 +3,10 @@ import * as StoryFilterView from "../view/StoryFilterView"
 import { Story, SubStory } from "../data/Story"
 import * as presenters from "./presenters_frontend"
 import * as story_list from "../view/StoryList"
-import { BackComms } from "../data/BackComms"
 import { URLRedirect } from "../data/URLRedirect"
 import { StoryMap } from "../data/StoryMap"
 import { StoryHistory } from "./StoryHistory"
+import { OnceSettings } from "../OnceSettings"
 
 export class StoryListItem extends HTMLElement {
   story: Story
@@ -221,14 +221,15 @@ export class StoryListItem extends HTMLElement {
   button_events(): void {
     this.filter_btn.onclick = (event) => {
       if (this.classList.contains("filtered")) {
-        BackComms.send("forward_to_parent", "show_filter", this.story.filter)
+        alert("moep: show filter fix me :D")
+        //BackComms.send("forward_to_parent", "show_filter", this.story.filter)
       } else {
         StoryFilterView.show_filter_dialog(
           event,
           this.filter_btn,
           this.story,
           (filter) => {
-            BackComms.send("settings", "add_filter", filter)
+            OnceSettings.instance.add_filter(filter)
           }
         )
       }
@@ -241,7 +242,7 @@ export class StoryListItem extends HTMLElement {
       if (StoryHistory.instance) {
         StoryHistory.instance.story_change(this.story, new_state, old_state)
       }
-      StoryMap.remote.persist_story_change(
+      StoryMap.instance.persist_story_change(
         this.story.href,
         "read_state",
         new_state
@@ -275,7 +276,7 @@ export class StoryListItem extends HTMLElement {
       const value = !this.story.stared
       this.story.stared = value
       console.debug("click start value", this.story.stared, "setting", value)
-      StoryMap.remote.persist_story_change(this.story.href, "stared", value)
+      StoryMap.instance.persist_story_change(this.story.href, "stared", value)
     })
   }
 
@@ -401,7 +402,7 @@ export class StoryListItem extends HTMLElement {
             "skipped",
             this.story.read_state
           )
-          StoryMap.remote.persist_story_change(
+          StoryMap.instance.persist_story_change(
             this.story.href,
             "read_state",
             "skipped"
@@ -605,7 +606,7 @@ if (window.customElements) {
 }
 
 function open_story(href: string, target: string) {
-  StoryMap.remote.persist_story_change(href, "read_state", "read")
+  StoryMap.instance.persist_story_change(href, "read_state", "read")
   if (target == "middle") {
     return
   }

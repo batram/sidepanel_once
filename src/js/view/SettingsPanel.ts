@@ -1,36 +1,10 @@
 import { OnceSettings } from "../OnceSettings"
-import { BackComms } from "../data/BackComms"
 
 export class SettingsPanel {
+  static instance: SettingsPanel
+
   constructor() {
-    BackComms.send("settings", "subscribe_to_changes")
-    BackComms.on("settings", async (event, cmd: string, ...args: unknown[]) => {
-      switch (cmd) {
-        case "set_filter_area":
-          console.debug("set_filter_area", args)
-          this.set_filter_area()
-          break
-        case "set_redirect_area":
-          console.debug("set_redirect_area", args)
-          this.set_redirect_area()
-          break
-        case "set_sources_area":
-          console.debug("set_sources_area", args)
-          this.set_sources_area()
-          break
-        case "restore_theme_settings":
-          console.debug("restore_theme_settings", args)
-          this.restore_theme_settings()
-          break
-        case "restore_animation_settings":
-          console.debug("restore_animation_settings", args)
-          this.restore_animation_settings()
-          break
-        default:
-          console.log("unhandled settings_panel", cmd)
-          event.returnValue = null
-      }
-    })
+    SettingsPanel.instance = this
 
     window
       .matchMedia("(prefers-color-scheme: dark)")
@@ -143,16 +117,16 @@ export class SettingsPanel {
 
   async reset_couch_settings(): Promise<void> {
     const couch_input = document.querySelector<HTMLInputElement>("#couch_input")
-    couch_input.value = await OnceSettings.remote.get_sync_url()
+    couch_input.value = await OnceSettings.instance.get_sync_url()
   }
 
   save_couch_settings(): void {
     const couch_input = document.querySelector<HTMLInputElement>("#couch_input")
-    OnceSettings.remote.set_sync_url(couch_input.value)
+    OnceSettings.instance.set_sync_url(couch_input.value)
   }
 
   async restore_theme_settings(): Promise<void> {
-    const theme_value = await OnceSettings.remote.pouch_get("theme", "dark")
+    const theme_value = await OnceSettings.instance.pouch_get("theme", "dark")
 
     const theme_select =
       document.querySelector<HTMLSelectElement>("#theme_select")
@@ -161,12 +135,12 @@ export class SettingsPanel {
   }
 
   save_theme(name: string): void {
-    BackComms.send("settings", "pouch_set", "theme", name)
+    OnceSettings.instance.pouch_set("theme", name, console.log)
     this.set_theme(name)
   }
 
   async restore_animation_settings(): Promise<void> {
-    const checked = await OnceSettings.remote.pouch_get("animation", true)
+    const checked = await OnceSettings.instance.pouch_get("animation", true)
 
     const anim_checkbox =
       document.querySelector<HTMLInputElement>("#anim_checkbox")
@@ -175,7 +149,7 @@ export class SettingsPanel {
   }
 
   save_animation(checked: boolean): void {
-    BackComms.send("settings", "pouch_set", "animation", checked)
+    OnceSettings.instance.pouch_set("animation", checked, console.log)
     const anim_checkbox =
       document.querySelector<HTMLInputElement>("#anim_checkbox")
     anim_checkbox.checked = checked
@@ -187,9 +161,12 @@ export class SettingsPanel {
   }
 
   set_theme(name: string): void {
-    switch (name) {
+    switch (
+      name
+      /*
+      //TODO: set theme
       case "dark":
-        BackComms.send("settings", "set_theme", "dark")
+        //BackComms.send("settings", "set_theme", "dark")
         break
       case "light":
         BackComms.send("settings", "set_theme", "light")
@@ -199,14 +176,15 @@ export class SettingsPanel {
         break
       case "system":
         BackComms.send("settings", "set_theme", "system")
-        break
+        break*/
+    ) {
     }
   }
 
   async set_sources_area(): Promise<void> {
     const sources_area =
       document.querySelector<HTMLInputElement>("#sources_area")
-    const story_sources = await OnceSettings.remote.story_sources()
+    const story_sources = await OnceSettings.instance.story_sources()
     sources_area.value = story_sources.join("\n")
   }
 
@@ -217,12 +195,12 @@ export class SettingsPanel {
       return x.trim() != ""
     })
 
-    BackComms.send("settings", "pouch_set", "story_sources", story_sources)
+    OnceSettings.instance.pouch_set("story_sources", story_sources, console.log)
   }
 
   async set_filter_area(): Promise<void> {
     const filter_area = document.querySelector<HTMLInputElement>("#filter_area")
-    const filter_list = await OnceSettings.remote.get_filterlist()
+    const filter_list = await OnceSettings.instance.get_filterlist()
     filter_area.value = filter_list.join("\n")
   }
 
@@ -231,13 +209,13 @@ export class SettingsPanel {
     const filter_list = filter_area.value.split("\n").filter((x) => {
       return x.trim() != ""
     })
-    BackComms.send("settings", "save_filterlist", filter_list)
+    OnceSettings.instance.save_filterlist(filter_list)
   }
 
   async set_redirect_area(): Promise<void> {
     const redirect_area =
       document.querySelector<HTMLInputElement>("#redirect_area")
-    const redirect_list = await OnceSettings.remote.get_redirectlist()
+    const redirect_list = await OnceSettings.instance.get_redirectlist()
     redirect_area.value = OnceSettings.present_redirectlist(redirect_list)
   }
 
@@ -245,6 +223,6 @@ export class SettingsPanel {
     const redirect_area =
       document.querySelector<HTMLInputElement>("#redirect_area")
     const redirect_list = OnceSettings.parse_redirectlist(redirect_area.value)
-    BackComms.send("settings", "save_redirectlist", redirect_list)
+    OnceSettings.instance.save_redirectlist(redirect_list)
   }
 }

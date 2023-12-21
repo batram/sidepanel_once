@@ -1,7 +1,6 @@
 import { OnceSettings } from "../OnceSettings"
 import { SettingsPanel } from "./SettingsPanel"
 import { StoryHistory } from "./StoryHistory"
-import { TabWrangler } from "./TabWrangler"
 import { URLRedirect } from "../data/URLRedirect"
 import * as story_list from "./StoryList"
 import * as search from "../data/search"
@@ -14,24 +13,20 @@ import { StoryMap } from "../data/StoryMap"
 //URLRedirect.init()
 
 document.addEventListener("DOMContentLoaded", async () => {
+  new OnceSettings()
+  new StoryMap()
+
   new SettingsPanel()
   new StoryHistory()
   story_list.init()
   side_menu.init()
   search.init_search()
   story_parser.add_all_css_colors()
-  const tab_content = document.querySelector<HTMLElement>("#tab_content")
-  const tab_dropzone = document.querySelector<HTMLElement>("#tab_dropzone")
-  if (tab_content && tab_dropzone) {
-    const tab_wrangler = new TabWrangler(tab_dropzone, tab_content, {
-      addtab_button: true,
-    })
-  }
 
   const dev_cache = false
 
   const grouped_story_sources =
-    await OnceSettings.remote.grouped_story_sources()
+    await OnceSettings.instance.grouped_story_sources()
   console.log("grouped_story_sources", grouped_story_sources)
   if (grouped_story_sources) {
     story_loader.parallel_load_stories(grouped_story_sources, dev_cache)
@@ -94,7 +89,7 @@ async function update_selected(href: string) {
     return
   }
 
-  const story = await StoryMap.remote.find_by_url(href)
+  const story = await StoryMap.instance.find_by_url(href)
 
   if (!story) {
     selected_container.innerHTML = ""

@@ -5,7 +5,6 @@ import * as filters from "../data/StoryFilters"
 import { StoryMap, DataChangeEventDetail } from "../data/StoryMap"
 import * as story_loader from "../data/StoryLoader"
 import * as search from "../data/search"
-import { BackComms } from "../data/BackComms"
 
 export class DataChangeEvent extends Event {
   detail: DataChangeEventDetail
@@ -27,62 +26,9 @@ export function init(): void {
   remote_story_change()
 }
 
-export function remote_story_change(): void {
-  BackComms.send("story_map", "subscribe_to_changes")
-  BackComms.on(
-    "story_map",
-    async (event, cmd: "data_change", details: DataChangeEventDetail) => {
-      switch (cmd) {
-        case "data_change": {
-          if (details.story && !(details.story instanceof Story)) {
-            details.story = Story.from_obj(details.story)
-          }
-          //console.debug("data_change", details)
-          if (details.path && details.path.length != 0) {
-            const story_els = document.querySelectorAll(
-              `.story[data-href="${details.path[0]}"]`
-            )
-            story_els.forEach((story_el) => {
-              story_el.dispatchEvent(
-                new DataChangeEvent("data_change", details)
-              )
-            })
-          }
+export function remote_story_change(): void {}
 
-          break
-        }
-        default:
-          console.log("unhandled story_list", cmd)
-          event.returnValue = null
-      }
-    }
-  )
-
-  BackComms.send("settings", "subscribe_to_changes")
-  BackComms.on("story_list", async (event, cmd: string, ...args: unknown[]) => {
-    switch (cmd) {
-      case "add_stories":
-        add_stories(
-          (args[0] as Record<string, unknown>[]).map((story: Story) => {
-            return Story.from_obj(story)
-          }),
-          args[1] as string
-        )
-        break
-      case "reload":
-        reload()
-        break
-      case "refilter":
-        refilter()
-        break
-      default:
-        console.log("unhandled story_list", cmd)
-        event.returnValue = null
-    }
-  })
-}
-
-function add_stories(stories: Story[], bucket = "stories") {
+export function add_stories(stories: Story[], bucket = "stories") {
   stories.forEach((story: Story) => {
     add(story, bucket)
   })
@@ -219,22 +165,22 @@ export function sort_stories(bucket = "stories"): void {
   })
 }
 
-function refilter(): void {
+export function refilter(): void {
   document
     .querySelectorAll<StoryListItem>(".story")
     .forEach(async (story_el) => {
       const sthref = story_el.dataset.href
-      const story = await StoryMap.remote.get(sthref)
+      const story = await StoryMap.instance.get(sthref)
       const og_filter = story.filter
       filters.filter_story(story).then(async (story) => {
         if (story.filter != og_filter) {
-          StoryMap.remote.persist_story_change(
+          StoryMap.instance.persist_story_change(
             story.href,
             "filter",
             story.filter
           )
           const nstory = new StoryListItem(
-            await StoryMap.remote.get(sthref.toString())
+            await StoryMap.instance.get(sthref.toString())
           )
           story_el.replaceWith(nstory)
         }
@@ -242,12 +188,14 @@ function refilter(): void {
     })
 }
 
-async function reload(): Promise<void> {
+export async function reload(): Promise<void> {
   document.querySelectorAll("#stories .story").forEach((x) => {
     x.outerHTML = ""
   })
 
-  OnceSettings.remote.grouped_story_sources().then((grouped_story_sources) => {
-    story_loader.load(grouped_story_sources)
-  })
+  OnceSettings.instance
+    .grouped_story_sources()
+    .then((grouped_story_sources) => {
+      story_loader.load(grouped_story_sources)
+    })
 }

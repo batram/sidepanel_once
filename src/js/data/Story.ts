@@ -156,8 +156,6 @@ export class Story {
         let provider = null
         if (OnceSettings.instance) {
           provider = OnceSettings.instance.once_db
-        } else {
-          provider = OnceSettings.remote
         }
         if (provider) {
           const attachment = await provider.getAttachment(this._id, "content")

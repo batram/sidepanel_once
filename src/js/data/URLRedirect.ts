@@ -9,7 +9,7 @@ export class URLRedirect {
   static dynamic_url_redirects: Redirect[]
 
   static init(): void {
-    const sets = OnceSettings.instance || OnceSettings.remote
+    const sets = OnceSettings.instance
     sets.get_redirectlist().then((x) => {
       URLRedirect.dynamic_url_redirects = x
     })

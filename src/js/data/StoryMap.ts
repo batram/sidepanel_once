@@ -1,6 +1,6 @@
 import { Story } from "../data/Story"
 import { OnceSettings } from "../OnceSettings"
-import { BackComms } from "./BackComms"
+import * as StoryList from "../view/StoryList"
 
 export interface DataChangeEventDetail {
   story: Story
@@ -13,98 +13,10 @@ export interface DataChangeEventDetail {
 
 export class StoryMap {
   static instance: StoryMap
-  static remote = {
-    async get(href: string): Promise<Story> {
-      const story_obj = await BackComms.invoke("inv_story_map", "get", href)
-      if (story_obj) return Story.from_obj(story_obj)
-    },
-    async add(href: Story): Promise<Story> {
-      return Story.from_obj(
-        await BackComms.invoke("inv_story_map", "add", href)
-      )
-    },
-    stories_loaded(stories: Story[], bucket: string): void {
-      const story_objs = stories.map((story) => {
-        return story.to_obj()
-      })
-      BackComms.send("story_map", "stories_loaded", story_objs, bucket)
-    },
-    persist_story_change(
-      href: string,
-      path: string,
-      value: Story | string | boolean
-    ): void {
-      BackComms.send("story_map", "persist_story_change", href, path, value)
-    },
-    async find_by_url(url: string): Promise<Story> {
-      if (!url) {
-        return
-      }
-      const story_obj = await BackComms.invoke(
-        "inv_story_map",
-        "find_by_url",
-        url
-      )
-      if (story_obj) return Story.from_obj(story_obj)
-    },
-  }
-
   subscribers: Number[] = []
 
   constructor() {
     StoryMap.instance = this
-
-    BackComms.handlex("inv_story_map", async (event, cmd, ...args: any[]) => {
-      switch (cmd) {
-        case "get":
-          return this.get(args[0] as string)
-        case "add":
-          return this.add(Story.from_obj(args[0] as Record<string, unknown>))
-        case "find_by_url":
-          return this.find_by_url(args[0][0] as string)
-        default:
-          console.log("unhandled inv_story_map", cmd)
-          event.returnValue = null
-      }
-    })
-
-    BackComms.on("story_map", async (event, cmd, ...args: unknown[]) => {
-      switch (cmd) {
-        case "subscribe_to_changes":
-          if (!this.subscribers.includes(event.sender)) {
-            this.subscribers.push(event.sender)
-          }
-          console.log("sub", this.subscribers, event, cmd, args)
-          break
-        case "persist_story_change":
-          this.persist_story_change(
-            args[0] as string,
-            args[1] as string,
-            args[2] as Story | string | boolean
-          )
-          event.returnValue = true
-          break
-        case "stories_loaded": {
-          const stories = (args[0] as Record<string, unknown>[]).map(
-            (st_obj: Record<string, unknown>) => {
-              return Story.from_obj(st_obj)
-            }
-          )
-
-          const mapped_stories = await this.add_stories(stories)
-
-          this.get_all_stared().forEach((story) => {
-            mapped_stories.push(story)
-          })
-
-          BackComms.send("story_list", "add_stories", mapped_stories, args[1])
-          break
-        }
-        default:
-          console.log("unhandled story_map", cmd)
-          event.returnValue = null
-      }
-    })
   }
 
   internal_map: Map<string, Story> = new Map()
@@ -168,7 +80,23 @@ export class StoryMap {
           animated: OnceSettings.instance.animated,
         }
 
-        BackComms.send("story_map", "data_change", detail)
+        //BackComms.send("story_map", "data_change", detail)
+
+        if (detail.story && !(detail.story instanceof Story)) {
+          detail.story = Story.from_obj(detail.story)
+        }
+        //console.debug("data_change", details)
+        if (detail.path && detail.path.length != 0) {
+          const story_els = document.querySelectorAll(
+            `.story[data-href="${detail.path[0]}"]`
+          )
+          story_els.forEach((story_el) => {
+            story_el.dispatchEvent(
+              new StoryList.DataChangeEvent("data_change", detail)
+            )
+          })
+        }
+
         this.subscribers.forEach((subscriber) => {
           console.log("subbedf==", subscriber)
           //if (!subscriber.isDestroyed()) {
@@ -312,5 +240,22 @@ export class StoryMap {
     }
 
     return og_story
+  }
+
+  async stories_loaded(
+    stories: Record<string, unknown>[],
+    bucket: string
+  ): Promise<void> {
+    const obj_stories = stories.map((st_obj: Record<string, unknown>) => {
+      return Story.from_obj(st_obj)
+    })
+
+    const mapped_stories = await this.add_stories(obj_stories)
+
+    this.get_all_stared().forEach((story) => {
+      mapped_stories.push(story)
+    })
+
+    StoryList.add_stories(mapped_stories, bucket)
   }
 }

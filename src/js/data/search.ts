@@ -211,5 +211,5 @@ async function local_search(needle: string) {
 
 async function add_global_search_results(search_stories: Story[]) {
   const filtered_stories = await story_filters.filter_stories(search_stories)
-  StoryMap.remote.stories_loaded(filtered_stories, "global_search_results")
+  StoryMap.instance.stories_loaded(filtered_stories, "global_search_results")
 }

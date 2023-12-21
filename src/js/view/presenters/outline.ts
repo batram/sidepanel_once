@@ -1,8 +1,6 @@
 import { Story } from "../../data/Story"
 import { StoryListItem } from "../../view/StoryListItem"
 import * as Readability from "../../third_party/Readability.js"
-import { TabWrangler } from "../../view/TabWrangler"
-import { BackComms } from "../../data/BackComms"
 import { StoryMap } from "../../data/StoryMap"
 
 export const description = "Presents contents of a webpage in more readable way"
@@ -114,10 +112,10 @@ export function story_elem_button(story: Story): HTMLElement {
 
 export function init_in_webtab(): void {
   //current_tab = tab
-  BackComms.on("outline", (_event, href) => {
+  /*  BackComms.on("outline", (_event, href) => {
     outline_button_active()
     outline(href)
-  })
+  })*/
 
   if (!presenter_options.urlbar_button.value) {
     return
