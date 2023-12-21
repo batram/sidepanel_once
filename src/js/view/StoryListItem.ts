@@ -608,6 +608,7 @@ if (window.customElements) {
 function open_story(href: string, target: string) {
   StoryMap.instance.persist_story_change(href, "read_state", "read")
   if (target == "middle") {
+    window.open(href, "_blank")
     return
   }
   if (target == "_self") {
