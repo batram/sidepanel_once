@@ -31,10 +31,7 @@ export class LoaderCache {
         let st = tx.objectStore("store")
         let gRequest = st.get(url)
         gRequest.onsuccess = function (e) {
-          console.log("cache onscu", e)
           try {
-            console.log("cache onscu res", url, gRequest.result)
-
             var cached = JSON.parse(gRequest.result)
 
             if (!Array.isArray(cached)) {
