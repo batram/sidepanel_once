@@ -287,23 +287,27 @@ export class StoryListItem extends HTMLElement {
     const add_background_element = () => {
       this.style.display = "inline-flex"
 
-      const bb_slide_el = document.createElement("div")
-      bb_slide_el.style.height = this.clientHeight + "px"
-      bb_slide_el.style.marginBottom = -this.clientHeight + "px"
-      bb_slide_el.style.lineHeight = this.clientHeight + "px"
-      bb_slide_el.classList.add("bb_slide")
+      if (!this.querySelector(".bb_slide")) {
+        const bb_slide_el = document.createElement("div")
+        bb_slide_el.style.height = this.clientHeight + "px"
+        bb_slide_el.style.marginBottom = -this.clientHeight + "px"
+        bb_slide_el.style.lineHeight = this.clientHeight + "px"
+        bb_slide_el.classList.add("bb_slide")
 
-      const bb_slide_left = document.createElement("div")
-      bb_slide_left.innerText = "read"
-      bb_slide_left.classList.add("swipe_left")
-      bb_slide_el.append(bb_slide_left)
+        const bb_slide_left = document.createElement("div")
+        bb_slide_left.innerText = "read"
+        bb_slide_left.classList.add("swipe_left")
+        bb_slide_left.style.backgroundImage = `linear-gradient(45deg, rgba(0, 128, 0, 0.5), transparent 50%)`
+        bb_slide_el.append(bb_slide_left)
 
-      const bb_slide_right = document.createElement("div")
-      bb_slide_right.innerText = "skip"
-      bb_slide_right.classList.add("swipe_right")
-      bb_slide_el.append(bb_slide_right)
+        const bb_slide_right = document.createElement("div")
+        bb_slide_right.innerText = "skip"
+        bb_slide_right.classList.add("swipe_right")
+        bb_slide_right.style.backgroundImage = `linear-gradient(45deg, transparent 50%, rgba(200, 0, 0, 0.5))`
+        bb_slide_el.append(bb_slide_right)
 
-      this.before(bb_slide_el)
+        this.before(bb_slide_el)
+      }
     }
 
     const mouse_swipe = (event: MouseEvent) => {
@@ -328,35 +332,20 @@ export class StoryListItem extends HTMLElement {
       const shift = x - start_offset
       const shift_percent = Math.abs(shift) / this.clientWidth
 
-      const sw_left = document.querySelector<HTMLElement>(".swipe_left")
-      const sw_right = document.querySelector<HTMLElement>(".swipe_right")
+      const sw_left =
+        this.parentElement.querySelector<HTMLElement>(".swipe_left")
+      const sw_right =
+        this.parentElement.querySelector<HTMLElement>(".swipe_right")
 
-      const threshold_percent = shift_percent / threshold
-
-      if (shift < 0) {
-        sw_left.style.display = "none"
-        sw_right.style.display = "block"
-      } else {
-        sw_left.style.display = "block"
-        sw_right.style.display = "none"
+      if (sw_left && sw_right) {
+        if (shift_percent > threshold) {
+          sw_left.style.fontWeight = "bold"
+          sw_right.style.fontWeight = "bold"
+        } else {
+          sw_left.style.fontWeight = ""
+          sw_right.style.fontWeight = ""
+        }
       }
-
-      if (shift_percent > threshold) {
-        sw_left.style.fontWeight = "bold"
-        sw_right.style.fontWeight = "bold"
-      } else {
-        sw_left.style.fontWeight = ""
-        sw_right.style.fontWeight = ""
-      }
-
-      sw_left.style.backgroundImage = `linear-gradient(45deg, rgba(0, 128, 0, ${Math.min(
-        threshold_percent * 0.5,
-        0.5
-      )}), transparent 50% )`
-      sw_right.style.backgroundImage = `linear-gradient(45deg, transparent 50% , rgba(200, 0, 0, ${Math.min(
-        threshold_percent * 0.5,
-        0.5
-      )}))`
 
       this.style.marginLeft = shift + "px"
     }
