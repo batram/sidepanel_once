@@ -23,7 +23,7 @@ function get_cached(url: string) {
       console.log("cached", mins_old, url)
     }
   } catch (e) {
-    console.log("cache error: ", e)
+    console.log("cache error", url, e)
     return null
   }
 
@@ -81,6 +81,12 @@ async function cache_load(url: string, try_cache = true) {
     url = parser.resolve_url(url)
   }
 
+  const delay = (time: number) => {
+    return new Promise((res) => {
+      setTimeout(res, time)
+    })
+  }
+
   if (cached != null) {
     if (parser.options.collects == "dom") {
       cached = story_parser.parse_dom(cached, url)
@@ -89,6 +95,13 @@ async function cache_load(url: string, try_cache = true) {
     }
     return parser.parse(cached) || []
   } else {
+    if (parser.options.settings.delay) {
+      var delay_time =
+        100 + (parser.options.settings.delay as number) * Math.random()
+      console.log("url", url, "delay_time: ", delay_time)
+      await delay(delay_time)
+    }
+
     const resp = await fetch(url)
     if (resp.ok) {
       return story_parser.parse_response(resp, url, og_url) || []

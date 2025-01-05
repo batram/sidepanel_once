@@ -6,6 +6,7 @@ export const options = {
   collects: "dom",
   colors: ["rgba(255, 102, 0, 0.56)", "white"],
   settings: {
+    delay: 1000,
     filter_ads: {
       value: true,
       description: "Filter advertising for job oppenings without comments",
