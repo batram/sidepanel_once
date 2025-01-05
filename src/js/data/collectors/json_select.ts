@@ -75,7 +75,7 @@ function process_templates(story: Story): Story {
   return story
 }
 
-export function parse(json: JSON, filter = true, og_url: string): Story[] {
+export function parse(json: JSON, url: string, og_url: string): Story[] {
   let selectors: JsonSelectorConf = {}
 
   if (

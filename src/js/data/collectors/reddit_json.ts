@@ -33,7 +33,12 @@ interface RedditJSONData {
   }
 }
 
-export function parse(json: RedditJSONData, filter = true): Story[] {
+export function parse(
+  json: RedditJSONData,
+  url: string,
+  og_url: string,
+  filter = true
+): Story[] {
   if (json.kind == "Listing") {
     return json.data.children
       .map((story) => {
@@ -83,7 +88,7 @@ export async function global_search(needle: string): Promise<Story[]> {
   const res = await fetch(search_url + encodeURIComponent(needle))
   if (res.ok) {
     const json_response = await res.json()
-    return parse(json_response, false)
+    return parse(json_response, "", "", false)
   }
   return []
 }

@@ -2,6 +2,7 @@ import * as menu from "../view/menu"
 import * as collectors from "../data/collectors"
 import { Story } from "./Story"
 import { context_link } from "../view/presenters_frontend"
+import { LoaderCache } from "./LoaderCache"
 
 export function get_parser_for_url(url: string): collectors.StoryParser {
   const parsers = collectors.get_parser()
@@ -57,21 +58,21 @@ export async function parse_response(
     throw "no parser found for: " + og_url
   }
 
-  if (parser.options.collects == "json") {
-    const json_content = await resp.json()
-    console.log("got json for ", url, parser, json_content)
-    cache_result(url, JSON.stringify([Date.now(), json_content]))
-    return parser.parse(json_content, url, og_url)
-  } else if (parser.options.collects == "dom") {
-    const text_content = await resp.text()
-    cache_result(url, JSON.stringify([Date.now(), text_content]))
-    const doc = parse_dom(text_content, url)
-    return parser.parse(doc, url, og_url)
-  } else if (parser.options.collects == "xml") {
-    const text_content = await resp.text()
-    cache_result(url, JSON.stringify([Date.now(), text_content]))
-    const doc = parse_xml(text_content)
-    return parser.parse(doc, url, og_url)
+  switch (parser.options.collects) {
+    case "json":
+      var json_content = await resp.json()
+      cache_result(og_url, JSON.stringify(json_content))
+      return parser.parse(json_content, url, og_url)
+    case "dom":
+      var text_content = await resp.text()
+      cache_result(og_url, text_content)
+      var doc = parse_dom(text_content, url)
+      return parser.parse(doc, url, og_url)
+    case "xml":
+      var text_content = await resp.text()
+      cache_result(og_url, text_content)
+      var doc = parse_xml(text_content)
+      return parser.parse(doc, url, og_url)
   }
 }
 
@@ -210,14 +211,6 @@ export function parse_human_time(str: string): number {
   return now - offset
 }
 
-function cache_result(url: string, content: string) {
-  if (content.length < 100 * 1000) {
-    try {
-      localStorage.setItem(url, content)
-    } catch (e) {
-      console.log("localStorage cache issue", e)
-    }
-  } else {
-    console.log("localStorage size issue", url, content.length)
-  }
+function cache_result(og_url: string, content: string) {
+  LoaderCache.set_cached(og_url, JSON.stringify([Date.now(), content]))
 }

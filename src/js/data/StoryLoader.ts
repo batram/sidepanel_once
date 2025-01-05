@@ -1,34 +1,9 @@
 import * as story_parser from "../data/parser"
 import { StoryMap } from "../data/StoryMap"
 import * as menu from "../view/menu"
+import { LoaderCache } from "./LoaderCache"
 import { Story } from "./Story"
 import * as story_filters from "./StoryFilters"
-
-function get_cached(url: string) {
-  let cached = localStorage.getItem(url)
-  const max_mins = 5000
-
-  try {
-    cached = JSON.parse(cached)
-    if (!Array.isArray(cached)) {
-      throw "cached entry is not Array"
-    }
-    if (cached.length != 2) {
-      throw "cached entry not length 2"
-    }
-    const mins_old = (Date.now() - cached[0]) / (60 * 1000)
-    if (mins_old > max_mins) {
-      throw "cached entry out of date " + mins_old
-    } else {
-      console.log("cached", mins_old, url)
-    }
-  } catch (e) {
-    console.log("cache error", url, e)
-    return null
-  }
-
-  return cached[1]
-}
 
 export async function parallel_load_stories(
   story_groups: Record<string, string[]>,
@@ -63,16 +38,16 @@ async function process_story_input(stories: Story[], group_name: string) {
 
 //data loader
 async function cache_load(url: string, try_cache = true) {
-  let cached = null
-  if (try_cache) {
-    //TODO: do we need to store the type?
-    cached = get_cached(url)
-  }
+  let cachedstr = null
 
   const parser = story_parser.get_parser_for_url(url)
   if (!parser) {
     console.info("no parser for", url)
     return
+  }
+
+  if (try_cache) {
+    cachedstr = (await LoaderCache.get_cached(url)) as string
   }
 
   const og_url = url
@@ -87,13 +62,21 @@ async function cache_load(url: string, try_cache = true) {
     })
   }
 
-  if (cached != null) {
-    if (parser.options.collects == "dom") {
-      cached = story_parser.parse_dom(cached, url)
-    } else if (parser.options.collects == "xml") {
-      cached = story_parser.parse_xml(cached)
+  if (cachedstr != null) {
+    let parsed_cache
+
+    switch (parser.options.collects) {
+      case "json":
+        parsed_cache = JSON.parse(cachedstr)
+        break
+      case "dom":
+        parsed_cache = story_parser.parse_dom(cachedstr, url)
+        break
+      case "xml":
+        parsed_cache = story_parser.parse_xml(cachedstr)
+        break
     }
-    return parser.parse(cached) || []
+    return parser.parse(parsed_cache, url, og_url) || []
   } else {
     if (parser.options.settings.delay) {
       var delay_time =

@@ -50,16 +50,6 @@ export class StoryMap {
       return this.internal_map.get(this.comment_map.get(url))
     }
     return null
-
-    /*
-    for (const i in this.internal_map) {
-      if (typeof this.internal_map[i] != "function") {
-        const story = this.internal_map[i]
-        if (story.matches_url(url)) {
-          return story
-        }
-      }
-    }*/
   }
 
   emit_data_change(
@@ -70,7 +60,6 @@ export class StoryMap {
   ): void {
     if (path.length != 0) {
       if (this.has(path[0])) {
-        //console.debug("fire DataChangeEvent", path, value, previousValue, name)
         const detail: DataChangeEventDetail = {
           story: this.get(path[0]),
           path: path,
@@ -80,12 +69,10 @@ export class StoryMap {
           animated: OnceSettings.instance.animated,
         }
 
-        //BackComms.send("story_map", "data_change", detail)
-
         if (detail.story && !(detail.story instanceof Story)) {
           detail.story = Story.from_obj(detail.story)
         }
-        //console.debug("data_change", details)
+
         if (detail.path && detail.path.length != 0) {
           const story_els = document.querySelectorAll(
             `.story[data-href="${detail.path[0]}"]`

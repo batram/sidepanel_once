@@ -14,8 +14,8 @@ export declare interface StoryParser {
 
   parse: (
     input: Document | Record<string, unknown>,
-    url?: string,
-    og_url?: string
+    url: string,
+    og_url: string
   ) => Story[]
   global_search: (needle: string) => Promise<Story[]>
   domain_search: (needle: string) => Promise<Story[]>

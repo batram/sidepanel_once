@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   search.init_search()
   story_parser.add_all_css_colors()
 
-  const dev_cache = false
+  const dev_cache = true
 
   const grouped_story_sources =
     await OnceSettings.instance.grouped_story_sources()
@@ -81,6 +81,10 @@ chrome.tabs.onUpdated.addListener(async function (tabId, changeInfo, tab) {
 })
 
 async function update_selected(href: string) {
+  if (href == undefined) {
+    return
+  }
+
   const selected_container = document.querySelector("#selected_container")
   let selected_story_el =
     selected_container.querySelector<StoryListItem>("story-item")
