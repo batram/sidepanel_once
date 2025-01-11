@@ -52,18 +52,21 @@ export class StoryListItem extends HTMLElement {
     this.link.href = redirected_url
     this.link.classList.add("title")
     this.link.innerText = this.story.title
-    this.link.addEventListener("click", () => {
+    this.link.addEventListener("click", (e: MouseEvent) => {
       this.read_btn.classList.add("user_interaction")
-      open_story(this.story.href, "_self")
+      open_story(this.story, "_self")
+
+      e.stopPropagation()
+      e.preventDefault()
+      return false
     })
     this.link.addEventListener("mouseup", (e: MouseEvent) => {
       if (e.button == 1) {
         this.read_btn.classList.add("user_interaction")
-        open_story(this.story.href, "middle")
-
         e.stopPropagation()
         e.preventDefault()
-        return true
+        StoryMap.instance.persist_story_change(this.story, "read_state", "read")
+        return false
       }
     })
 
@@ -71,7 +74,7 @@ export class StoryListItem extends HTMLElement {
       if (e.button == 1) {
         e.stopPropagation()
         e.preventDefault()
-        return true
+        return false
       }
     })
 
@@ -243,7 +246,7 @@ export class StoryListItem extends HTMLElement {
         StoryHistory.instance.story_change(this.story, new_state, old_state)
       }
       StoryMap.instance.persist_story_change(
-        this.story.href,
+        this.story,
         "read_state",
         new_state
       )
@@ -252,7 +255,7 @@ export class StoryListItem extends HTMLElement {
     //open story with middle click on "skip reading"
     this.read_btn.addEventListener("mouseup", (e: MouseEvent) => {
       if (e.button == 1) {
-        open_story(this.story.href, "blank")
+        open_story(this.story, "blank")
 
         e.stopPropagation()
         e.preventDefault()
@@ -276,7 +279,7 @@ export class StoryListItem extends HTMLElement {
       const value = !this.story.stared
       this.story.stared = value
       console.debug("click start value", this.story.stared, "setting", value)
-      StoryMap.instance.persist_story_change(this.story.href, "stared", value)
+      StoryMap.instance.persist_story_change(this.story, "stared", value)
     })
   }
 
@@ -392,12 +395,12 @@ export class StoryListItem extends HTMLElement {
             this.story.read_state
           )
           StoryMap.instance.persist_story_change(
-            this.story.href,
+            this.story,
             "read_state",
             "skipped"
           )
         } else {
-          open_story(this.story.href, "_self")
+          open_story(this.story, "_self")
         }
       }
 
@@ -435,8 +438,10 @@ export class StoryListItem extends HTMLElement {
     info.appendChild(comments_link)
 
     comments_link.addEventListener("click", (e) => {
-      console.log("clickedy comments link", e)
-      open_story(comments_link.href, "_self")
+      chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+        var tab = tabs[0]
+        chrome.tabs.update(tab.id, { url: comments_link.href })
+      })
     })
 
     const time = document.createElement("div")
@@ -594,18 +599,18 @@ if (window.customElements) {
   window.customElements.define("story-item", StoryListItem)
 }
 
-function open_story(href: string, target: string) {
-  StoryMap.instance.persist_story_change(href, "read_state", "read")
+function open_story(story: Story, target: string) {
+  StoryMap.instance.persist_story_change(story, "read_state", "read")
   if (target == "middle") {
-    window.open(href, "_blank")
+    window.open(story.href, "_blank")
     return
   }
   if (target == "_self") {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       var tab = tabs[0]
-      chrome.tabs.update(tab.id, { url: href })
+      chrome.tabs.update(tab.id, { url: story.href })
     })
   } else {
-    window.open(href, target)
+    window.open(story.href, target)
   }
 }

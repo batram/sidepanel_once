@@ -117,15 +117,14 @@ export class StoryMap {
   }
 
   async persist_story_change(
-    href: string,
+    story: Story,
     path: string,
     value: Story | string | boolean
   ): Promise<Story> {
-    let story = this.get(href)
     if (story) {
       const previous_value = story[path]
       story[path] = value
-      this.emit_data_change([href, path], value, previous_value, null)
+      this.emit_data_change([story.href, path], value, previous_value, null)
       story = await OnceSettings.instance.save_story(story)
     }
     return story

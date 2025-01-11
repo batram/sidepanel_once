@@ -59,7 +59,7 @@ export class StoryHistory {
       const hstate = this.undo_history.pop()
       console.log("undo", hstate)
       StoryMap.instance.persist_story_change(
-        hstate.story.href,
+        hstate.story,
         "read_state",
         hstate.old_state
       )
@@ -78,7 +78,7 @@ export class StoryHistory {
       const hstate = this.redo_history.pop()
       console.log("redo", hstate)
       StoryMap.instance.persist_story_change(
-        hstate.story.href,
+        hstate.story,
         "read_state",
         hstate.old_state
       )

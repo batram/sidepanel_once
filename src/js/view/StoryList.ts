@@ -174,11 +174,7 @@ export function refilter(): void {
       const og_filter = story.filter
       filters.filter_story(story).then(async (story) => {
         if (story.filter != og_filter) {
-          StoryMap.instance.persist_story_change(
-            story.href,
-            "filter",
-            story.filter
-          )
+          StoryMap.instance.persist_story_change(story, "filter", story.filter)
           const nstory = new StoryListItem(
             await StoryMap.instance.get(sthref.toString())
           )
