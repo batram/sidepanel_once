@@ -63,10 +63,7 @@ export class StoryListItem extends HTMLElement {
     this.link.addEventListener("mouseup", (e: MouseEvent) => {
       if (e.button == 1) {
         this.read_btn.classList.add("user_interaction")
-        e.stopPropagation()
-        e.preventDefault()
         StoryMap.instance.persist_story_change(this.story, "read_state", "read")
-        return false
       }
     })
 
