@@ -67,14 +67,6 @@ export class StoryListItem extends HTMLElement {
       }
     })
 
-    this.link.addEventListener("mousedown", (e: MouseEvent) => {
-      if (e.button == 1) {
-        e.stopPropagation()
-        e.preventDefault()
-        return false
-      }
-    })
-
     title_line.appendChild(this.link)
 
     const og_link = document.createElement("a")
