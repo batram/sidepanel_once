@@ -24,10 +24,11 @@ export class OnceSettings {
   constructor() {
     OnceSettings.instance = this
     this.once_db = new PouchDB("once_db")
+    /*
     this.get_stories().then((stories) => {
-      //console.log("init stories", stories.length, stories)
+      console.log("init stories", stories.length)
       StoryMap.instance.set_initial_stories(stories)
-    })
+    })*/
 
     this.get_sync_url().then((x) => {
       if (x) {

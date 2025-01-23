@@ -11,28 +11,30 @@ import { StoryListItem } from "./StoryListItem"
 import { StoryMap } from "../data/StoryMap"
 
 //URLRedirect.init()
+new OnceSettings()
+new StoryMap()
+
+load_stories()
+async function load_stories() {
+  const dev_cache = true
+
+  const grouped_story_sources =
+    await OnceSettings.instance.grouped_story_sources()
+
+  if (grouped_story_sources) {
+    story_loader.parallel_load_stories(grouped_story_sources, dev_cache)
+  } else {
+    console.error("no sources", grouped_story_sources)
+  }
+}
 
 document.addEventListener("DOMContentLoaded", async () => {
-  new OnceSettings()
-  new StoryMap()
-
   new SettingsPanel()
   new StoryHistory()
   story_list.init()
   side_menu.init()
   search.init_search()
   story_parser.add_all_css_colors()
-
-  const dev_cache = true
-
-  const grouped_story_sources =
-    await OnceSettings.instance.grouped_story_sources()
-  console.log("grouped_story_sources", grouped_story_sources)
-  if (grouped_story_sources) {
-    story_loader.parallel_load_stories(grouped_story_sources, dev_cache)
-  } else {
-    console.error("no sources", grouped_story_sources)
-  }
 
   chrome.tabs.query({ currentWindow: true, active: true }, function (tabArray) {
     update_selected(tabArray[0].url)
@@ -93,7 +95,7 @@ async function update_selected(href: string) {
     return
   }
 
-  const story = await StoryMap.instance.find_by_url(href)
+  const story = await OnceSettings.instance.get_story(href)
 
   if (!story) {
     selected_container.innerHTML = ""
