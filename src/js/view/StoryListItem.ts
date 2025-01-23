@@ -53,17 +53,25 @@ export class StoryListItem extends HTMLElement {
     this.link.classList.add("title")
     this.link.innerText = this.story.title
     this.link.addEventListener("click", (e: MouseEvent) => {
-      this.read_btn.classList.add("user_interaction")
-      open_story(this.story, "_self")
-
-      e.stopPropagation()
-      e.preventDefault()
-      return false
+      if (e.button != 1) {
+        this.read_btn.classList.add("user_interaction")
+        open_story(this.story, "_self")
+        e.stopPropagation()
+        e.preventDefault()
+        return false
+      }
     })
+
     this.link.addEventListener("mouseup", (e: MouseEvent) => {
       if (e.button == 1) {
-        this.read_btn.classList.add("user_interaction")
-        StoryMap.instance.persist_story_change(this.story, "read_state", "read")
+        setTimeout(() => {
+          this.read_btn.classList.add("user_interaction")
+          StoryMap.instance.persist_story_change(
+            this.story,
+            "read_state",
+            "read"
+          )
+        }, 1)
       }
     })
 
