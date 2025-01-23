@@ -47,7 +47,9 @@ async function cache_load(url: string, try_cache = true) {
   }
 
   if (try_cache) {
-    cachedstr = (await LoaderCache.get_cached(url)) as string
+    cachedstr = (await LoaderCache.get_cached(url).catch((error) =>
+      console.log(error)
+    )) as string
   }
 
   const og_url = url
