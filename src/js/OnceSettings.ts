@@ -228,7 +228,7 @@ export class OnceSettings {
       .then((doc: unknown) => {
         return Story.from_obj(doc as Story)
       })
-      .catch((err) => {
+      .catch((err: any) => {
         console.error("get_story err", err)
         return null
       })
