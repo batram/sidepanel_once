@@ -40,6 +40,19 @@ export class SettingsPanel {
         this.reset_couch_settings()
       })
 
+    const cache_input = document.querySelector<HTMLInputElement>("#cache_input")
+    this.reset_cache_settings()
+    cache_input.parentElement
+      .querySelector('input[value="save"]')
+      .addEventListener("click", () => {
+        this.save_cache_settings()
+      })
+    cache_input.parentElement
+      .querySelector('input[value="cancel"]')
+      .addEventListener("click", () => {
+        this.reset_cache_settings()
+      })
+
     this.set_sources_area()
 
     const sources_area =
@@ -123,6 +136,18 @@ export class SettingsPanel {
   save_couch_settings(): void {
     const couch_input = document.querySelector<HTMLInputElement>("#couch_input")
     OnceSettings.instance.set_sync_url(couch_input.value)
+  }
+
+  async reset_cache_settings(): Promise<void> {
+    const cache_input = document.querySelector<HTMLInputElement>("#cache_input")
+    cache_input.value = (
+      await OnceSettings.instance.get_cache_time()
+    ).toString()
+  }
+
+  save_cache_settings(): void {
+    const cache_input = document.querySelector<HTMLInputElement>("#cache_input")
+    OnceSettings.instance.set_cache_time(cache_input.value)
   }
 
   async restore_theme_settings(): Promise<void> {

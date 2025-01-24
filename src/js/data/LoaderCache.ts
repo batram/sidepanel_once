@@ -1,3 +1,5 @@
+import { OnceSettings } from "../OnceSettings"
+
 export class LoaderCache {
   static instance: LoaderCache
   static base_name = "loader_cache"
@@ -19,9 +21,9 @@ export class LoaderCache {
     })
   }
 
-  static get_cached(url: string) {
+  static async get_cached(url: string) {
     LoaderCache.initialize()
-    const max_mins = 5000
+    const cache_time = await OnceSettings.instance.get_cache_time()
 
     return new Promise((resolve, reject) => {
       let oRequest = indexedDB.open(LoaderCache.base_name)
@@ -41,7 +43,7 @@ export class LoaderCache {
               reject("cached entry not length 2")
             }
             const mins_old = (Date.now() - cached[0]) / (60 * 1000)
-            if (mins_old > max_mins) {
+            if (mins_old > cache_time) {
               reject("cached entry out of date " + mins_old)
             } else {
               console.log("cached", mins_old, url)

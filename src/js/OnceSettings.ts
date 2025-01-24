@@ -102,6 +102,21 @@ export class OnceSettings {
     return data ? data.sync_url : ""
   }
 
+  async set_cache_time(cache_time: string): Promise<void> {
+    let ct = parseInt(cache_time)
+    const old_time = await this.get_cache_time()
+    console.log("set_cache_time", ct, old_time)
+    if (!Number.isNaN(ct) && ct != old_time) {
+      chrome.storage.sync.set({ cache_time: cache_time })
+    }
+  }
+
+  async get_cache_time(): Promise<number> {
+    let data = await chrome.storage.sync.get("cache_time")
+    let time = parseInt(data.cache_time)
+    return data && !Number.isNaN(time) ? time : 120
+  }
+
   update_on_change(
     event: PouchDB.Replication.SyncResult<Record<string, unknown>>
   ): void {
