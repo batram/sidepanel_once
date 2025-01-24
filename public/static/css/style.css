@@ -650,6 +650,10 @@ body[animated="true"] .stared .user_interaction.star_btn::after {
   margin-bottom: 2px;
 }
 
+#settings_panel input[type="button"] {
+  cursor: pointer;
+}
+
 #couch_input {
   display: block;
   width: 95%;
